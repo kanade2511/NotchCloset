@@ -17,7 +17,7 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
-    let animation: Animation = .timingCurve(0.0, 0.0, 0.3, 1.0, duration: 0.3)
+    let animation: Animation = .timingCurve(0.0, 0.0, 0.3, 1.0, duration: 0.2)
     let notchOpenedSize: CGSize = .init(width: 600, height: 160)
     let dropDetectorRange: CGFloat = 32
 
@@ -29,6 +29,7 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum OpenReason: String, Codable, Hashable, Equatable {
         case click
+        case hover
         case drag
         case boot
         case unknown
@@ -55,6 +56,18 @@ class NotchViewModel: NSObject, ObservableObject {
             y: screenRect.origin.y + screenRect.height - deviceNotchRect.height,
             width: notchOpenedSize.width,
             height: deviceNotchRect.height
+        )
+    }
+
+    var hoverAreaRect: CGRect {
+        let scale: CGFloat = 1.5
+        let w = deviceNotchRect.width * scale
+        let h = deviceNotchRect.height * scale
+        return .init(
+            x: deviceNotchRect.midX - w / 2,
+            y: deviceNotchRect.maxY - h,
+            width: w,
+            height: h
         )
     }
 
