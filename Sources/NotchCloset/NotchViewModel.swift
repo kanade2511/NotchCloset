@@ -1,3 +1,11 @@
+//
+//  NotchViewModel.swift
+//  NotchCloset
+//
+//  Created by 秋星桥 on 2024/7/7.
+//  Modified by @kanade2511
+//
+
 import Cocoa
 import Combine
 import Foundation
