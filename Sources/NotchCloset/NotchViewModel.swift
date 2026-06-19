@@ -17,11 +17,7 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
-    let animation: Animation = .interactiveSpring(
-        duration: 0.5,
-        extraBounce: 0.25,
-        blendDuration: 0.125
-    )
+    let animation: Animation = .timingCurve(0.0, 0.0, 0.3, 1.0, duration: 0.3)
     let notchOpenedSize: CGSize = .init(width: 600, height: 160)
     let dropDetectorRange: CGFloat = 32
 
