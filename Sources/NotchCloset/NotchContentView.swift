@@ -2,9 +2,6 @@
 //  NotchContentView.swift
 //  NotchCloset
 //
-//  Created by 秋星桥 on 2024/7/7.
-//  Last Modified by 冷月 on 2025/5/5.
-//
 
 import SwiftUI
 

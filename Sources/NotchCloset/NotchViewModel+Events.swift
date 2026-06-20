@@ -23,14 +23,9 @@ extension NotchViewModel {
                 let mouseLocation: NSPoint = NSEvent.mouseLocation
                 switch status {
                 case .opened:
-                    // touch outside, close
                     if !notchOpenedRect.contains(mouseLocation) {
                         notchClose()
-                        // click where user open the panel
                     } else if deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation) {
-                        notchClose()
-                        // for the same height as device notch, open the url of project
-                    } else if headlineOpenedRect.contains(mouseLocation) {
                         notchClose()
                     }
                 case .closed, .popping:

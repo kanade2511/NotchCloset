@@ -53,7 +53,6 @@ class NotchViewModel: NSObject, ObservableObject {
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
         case menu
-        case settings
     }
 
     var notchOpenedRect: CGRect {
@@ -88,6 +87,9 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "hapticFeedback", defaultValue: true)
     var hapticFeedback: Bool
 
+    @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
+    var selectedLanguage: Language
+
     let hapticSender = PassthroughSubject<Void, Never>()
     var closeWorkItem: DispatchWorkItem?
     var dragOpenWorkItem: DispatchWorkItem?
@@ -111,10 +113,6 @@ class NotchViewModel: NSObject, ObservableObject {
         openReason = .unknown
         withAnimation(animationClose) { status = .closed }
         contentType = .normal
-    }
-
-    func showSettings() {
-        contentType = .settings
     }
 
     func notchPop() {

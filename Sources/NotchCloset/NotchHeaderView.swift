@@ -2,8 +2,6 @@
 //  NotchHeaderView.swift
 //  NotchCloset
 //
-//  Created by 秋星桥 on 2024/7/7.
-//
 
 import SwiftUI
 
@@ -15,6 +13,12 @@ struct NotchHeaderView: View {
             Text("NotchCloset")
                 .font(.system(.headline, design: .rounded))
             Spacer()
+            Button {
+                (NSApp.delegate as? AppDelegate)?.openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.borderless)
         }
     }
 }

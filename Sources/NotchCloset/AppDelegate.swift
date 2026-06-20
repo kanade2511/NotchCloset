@@ -7,12 +7,14 @@
 
 import AppKit
 import Cocoa
+import SwiftUI
 
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var isFirstOpen = true
     var isLaunchedAtLogin = false
     var mainWindowController: NotchWindowController?
+    var settingsWindow: NSWindow?
 
     var timer: Timer?
 
@@ -90,5 +92,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         else { return true }
         vm.notchOpen(.click)
         return true
+    }
+
+    @objc func openSettings() {
+        if let window = settingsWindow {
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let vm = mainWindowController?.vm ?? NotchViewModel()
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 160),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "NotchCloset Settings"
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(rootView: NotchSettingsView(vm: vm))
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        settingsWindow = window
     }
 }
