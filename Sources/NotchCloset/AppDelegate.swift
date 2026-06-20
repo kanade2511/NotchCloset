@@ -38,6 +38,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.timer = timer
 
         rebuildApplicationWindows()
+        preflightTCC()
+    }
+
+    /// Touches protected directories at launch so the TCC dialog appears upfront
+    /// rather than when the user first drags a file from Desktop/Downloads.
+    private func preflightTCC() {
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let paths = ["Desktop", "Downloads"].map {
+                home.appendingPathComponent($0).path
+            }
+            for path in paths {
+                _ = try? FileManager.default.contentsOfDirectory(atPath: path)
+            }
+        }
     }
 
     func applicationWillTerminate(_: Notification) {

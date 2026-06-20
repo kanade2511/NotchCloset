@@ -94,21 +94,6 @@ class TrayDrop: ObservableObject {
 
     private func delete(item: DropItem) {
         var inEdit = items
-
-        var url = item.storageURL
-        try? FileManager.default.removeItem(at: url)
-
-        do {
-            // loops up to the main directory
-            url = url.deletingLastPathComponent()
-            while url.lastPathComponent != DropItem.mainDir, url != documentsDirectory {
-                let contents = try FileManager.default.contentsOfDirectory(atPath: url.path)
-                guard contents.isEmpty else { break }
-                try FileManager.default.removeItem(at: url)
-                url = url.deletingLastPathComponent()
-            }
-        } catch {}
-
         inEdit.remove(item)
         items = inEdit
     }

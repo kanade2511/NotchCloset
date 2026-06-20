@@ -10,8 +10,10 @@ import SwiftUI
 struct TrayView: View {
     @StateObject var vm: NotchViewModel
     @StateObject var tvm = TrayDrop.shared
+    @ObservedObject var dragCoordinator = ItemDragCoordinator.shared
 
     @State private var targeting = false
+    @State private var trashHover = false
 
     var storageTime: String {
         switch tvm.selectedFileStorageTime {
@@ -41,6 +43,7 @@ struct TrayView: View {
             }
             .onAppear { tvm.cleanExpiredFiles() }
             .onChange(of: tvm.items.count) { _, _ in tvm.cleanExpiredFiles() }
+            .onAppear { dragCoordinator.dragCancelled() }
     }
 
     var panel: some View {
@@ -82,18 +85,57 @@ struct TrayView: View {
                         .font(.system(.headline, design: .rounded))
                 }
             } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: vm.spacing) {
-                        ForEach(tvm.items) { item in
-                            DropItemView(item: item, vm: vm, tvm: tvm)
+                HStack(spacing: 0) {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: vm.spacing) {
+                            ForEach(tvm.items) { item in
+                                DropItemView(item: item, vm: vm, tvm: tvm)
+                            }
                         }
+                        .padding(vm.spacing)
                     }
-                    .padding(vm.spacing)
+                    .padding(-vm.spacing)
+                    .scrollIndicators(.never)
+
+                    if dragCoordinator.isDragging {
+                        trashArea
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
                 }
-                .padding(-vm.spacing)
-                .scrollIndicators(.never)
             }
         }
+    }
+
+    @ViewBuilder
+    private var trashArea: some View {
+        VStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.red.opacity(trashHover ? 0.3 : 0.06))
+                .overlay {
+                    Image(systemName: "trash")
+                        .font(.title2)
+                        .foregroundStyle(.white.opacity(trashHover ? 1 : 0.35))
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: 64)
+
+            Text("Delete")
+                .multilineTextAlignment(.center)
+                .font(.system(.footnote, design: .rounded))
+                .foregroundStyle(.white.opacity(trashHover ? 1 : 0.35))
+                .frame(maxWidth: 64)
+        }
+        .contentShape(Rectangle())
+        .scaleEffect(trashHover ? 1.05 : 1.0)
+        .padding(.leading, vm.spacing)
+        .onDrop(of: [.data], isTargeted: $trashHover) { _ in
+            if let id = dragCoordinator.draggedItemId {
+                tvm.delete(id)
+                dragCoordinator.dragCancelled()
+            }
+            return true
+        }
+        .animation(vm.animation, value: trashHover)
     }
 }
 

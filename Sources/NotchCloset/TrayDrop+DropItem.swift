@@ -3,6 +3,7 @@
 //  NotchCloset
 //
 //  Created by 秋星桥 on 2024/7/8.
+//  Modified by @kanade2511 — reference-based (no file copy)
 //
 
 import Cocoa
@@ -16,8 +17,10 @@ extension TrayDrop {
 
         let fileName: String
         let size: Int
+        /// Original file URL from the drag source.
+        let sourceURL: URL
 
-        let copiedDate: Date
+        let addedDate: Date
         let workspacePreviewImageData: Data
 
         init(url: URL) throws {
@@ -25,39 +28,21 @@ extension TrayDrop {
 
             id = UUID()
             fileName = url.lastPathComponent
+            sourceURL = url
 
             size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-            copiedDate = Date()
+            addedDate = Date()
             workspacePreviewImageData = url.snapshotPreview().pngRepresentation
-
-            try FileManager.default.createDirectory(
-                at: storageURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            try FileManager.default.copyItem(at: url, to: storageURL)
         }
     }
 }
 
 extension TrayDrop.DropItem {
-    static let mainDir = "CopiedItems"
-
-    var storageURL: URL {
-        documentsDirectory
-            .appendingPathComponent(Self.mainDir)
-            .appendingPathComponent(id.uuidString)
-            .appendingPathComponent(fileName)
-    }
-
     var workspacePreviewImage: NSImage {
         .init(data: workspacePreviewImageData) ?? .init()
     }
 
     var shouldClean: Bool {
-        if !FileManager.default.fileExists(atPath: storageURL.path) { return true }
-        let keepInterval = TrayDrop.shared.keepInterval
-        guard keepInterval > 0 else { return true } // avoid non-reasonable value deleting user's files
-        if Date().timeIntervalSince(copiedDate) > TrayDrop.shared.keepInterval { return true }
-        return false
+        !FileManager.default.fileExists(atPath: sourceURL.path)
     }
 }

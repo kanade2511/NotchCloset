@@ -14,6 +14,7 @@ struct DropItemView: View {
     let item: TrayDrop.DropItem
     @StateObject var vm: NotchViewModel
     @StateObject var tvm = TrayDrop.shared
+    @ObservedObject var dragCoordinator = ItemDragCoordinator.shared
 
     @State var hover = false
 
@@ -38,12 +39,17 @@ struct DropItemView: View {
         .scaleEffect(hover ? 1.05 : 1.0)
         .animation(vm.animation, value: hover)
         .onDrag {
+            dragCoordinator.dragStarted(itemId: item.id)
+            let sourceURL = item.sourceURL
             let provider = NSItemProvider()
             provider.suggestedName = item.fileName
             provider.registerFileRepresentation(
                 for: UTType.data,
                 visibility: .all
             ) { completion in
+                _ = sourceURL.startAccessingSecurityScopedResource()
+                defer { sourceURL.stopAccessingSecurityScopedResource() }
+
                 let tempDir = temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
                 try? FileManager.default.createDirectory(
@@ -52,11 +58,21 @@ struct DropItemView: View {
                 )
                 let tempURL = tempDir
                     .appendingPathComponent(item.fileName)
-                try? FileManager.default.copyItem(
-                    at: item.storageURL,
-                    to: tempURL
-                )
+
+                let fm = FileManager.default
+                do {
+                    try fm.moveItem(at: sourceURL, to: tempURL)
+                } catch {
+                    try? fm.copyItem(at: sourceURL, to: tempURL)
+                    try? fm.removeItem(at: sourceURL)
+                }
                 completion(tempURL, false, nil)
+
+                DispatchQueue.main.async {
+                    guard dragCoordinator.draggedItemId == item.id else { return }
+                    TrayDrop.shared.delete(item.id)
+                    dragCoordinator.dragCompleted(itemId: item.id)
+                }
                 return nil
             }
             return provider
@@ -65,7 +81,7 @@ struct DropItemView: View {
             guard !vm.optionKeyPressed else { return }
             vm.notchClose()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                NSWorkspace.shared.open(item.storageURL)
+                NSWorkspace.shared.open(item.sourceURL)
             }
         }
         .overlay {
