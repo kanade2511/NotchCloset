@@ -18,6 +18,8 @@ extension NotchViewModel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else { return }
+                dragOpenWorkItem?.cancel()
+                dragOpenWorkItem = nil
                 let mouseLocation: NSPoint = NSEvent.mouseLocation
                 switch status {
                 case .opened:
@@ -37,6 +39,21 @@ extension NotchViewModel {
                         notchOpen(.click)
                     }
                 }
+            }
+            .store(in: &cancellables)
+
+        events.dragBegan
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self, status == .closed else { return }
+                let mouseY = NSEvent.mouseLocation.y
+                guard mouseY > screenRect.maxY - 250 else { return }
+                let work = DispatchWorkItem { [weak self] in
+                    guard let self else { return }
+                    notchOpen(.drag)
+                }
+                dragOpenWorkItem = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
             }
             .store(in: &cancellables)
 
@@ -120,6 +137,8 @@ extension NotchViewModel {
     func destroy() {
         closeWorkItem?.cancel()
         closeWorkItem = nil
+        dragOpenWorkItem?.cancel()
+        dragOpenWorkItem = nil
         cancellables.forEach { $0.cancel() }
         cancellables.removeAll()
     }

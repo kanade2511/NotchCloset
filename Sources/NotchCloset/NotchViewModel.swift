@@ -90,10 +90,13 @@ class NotchViewModel: NSObject, ObservableObject {
 
     let hapticSender = PassthroughSubject<Void, Never>()
     var closeWorkItem: DispatchWorkItem?
+    var dragOpenWorkItem: DispatchWorkItem?
 
     func notchOpen(_ reason: OpenReason) {
         closeWorkItem?.cancel()
         closeWorkItem = nil
+        dragOpenWorkItem?.cancel()
+        dragOpenWorkItem = nil
         openReason = reason
         contentType = .normal
         withAnimation(animationOpen) { status = .opened }
@@ -103,6 +106,8 @@ class NotchViewModel: NSObject, ObservableObject {
     func notchClose() {
         closeWorkItem?.cancel()
         closeWorkItem = nil
+        dragOpenWorkItem?.cancel()
+        dragOpenWorkItem = nil
         openReason = .unknown
         withAnimation(animationClose) { status = .closed }
         contentType = .normal

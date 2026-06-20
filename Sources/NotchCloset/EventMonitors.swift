@@ -20,6 +20,9 @@ class EventMonitors {
     let mouseDown: PassthroughSubject<Void, Never> = .init()
     let mouseDraggingFile: PassthroughSubject<Void, Never> = .init()
     let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
+    let dragBegan: PassthroughSubject<Void, Never> = .init()
+
+    private var dragPasteboardBaseline = 0
 
     private init() {
         mouseMoveEvent = EventMonitor(mask: .mouseMoved) { [weak self] _ in
@@ -32,12 +35,28 @@ class EventMonitors {
         mouseDownEvent = EventMonitor(mask: .leftMouseDown) { [weak self] _ in
             guard let self else { return }
             mouseDown.send()
+            dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
         }
         mouseDownEvent.start()
 
         mouseDraggingFileEvent = EventMonitor(mask: .leftMouseDragged) { [weak self] _ in
             guard let self else { return }
             mouseDraggingFile.send()
+            if NSPasteboard(name: .drag).changeCount != dragPasteboardBaseline {
+                dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
+                let types = NSPasteboard(name: .drag).types ?? []
+                let hasTarget = types.contains { t in
+                    t.rawValue.hasPrefix("public.file-url") ||
+                    t.rawValue.hasPrefix("public.url") ||
+                    t.rawValue.hasPrefix("public.utf") ||
+                    t.rawValue.hasPrefix("public.plain-text") ||
+                    t.rawValue.hasPrefix("public.rtf") ||
+                    t == .fileURL
+                }
+                if hasTarget {
+                    dragBegan.send()
+                }
+            }
         }
         mouseDraggingFileEvent.start()
 
