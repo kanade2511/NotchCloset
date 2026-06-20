@@ -135,7 +135,7 @@ struct TrayView: View {
 
                     if dragCoordinator.isDragging {
                         trashArea
-                            .transition(.move(edge: .trailing).combined(with: .opacity).animation(vm.animationTrash))
+                            .transition(.opacity.animation(vm.animationTrash))
                     }
                 }
             }
