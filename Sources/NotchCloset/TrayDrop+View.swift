@@ -115,8 +115,13 @@ struct TrayView: View {
                                         total: tvm.items.count,
                                         isInitialBatch: idx < initialBatchEnd,
                                         cascadeCount: cascadeCount,
-                                        vm: vm
+                                        vm: vm,
+                                        tvm: tvm
                                     )
+                                }
+
+                                if dragCoordinator.isDragging {
+                                    endDropZone
                                 }
                         }
                         .padding(vm.spacing)
@@ -131,6 +136,26 @@ struct TrayView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var endDropZone: some View {
+        Color.clear
+            .frame(width: 48, height: 64)
+            .contentShape(Rectangle())
+            .onDrop(of: [.data, .directory, .folder, .url], isTargeted: .constant(false)) { _ in
+                guard let draggedId = dragCoordinator.draggedItemId,
+                      let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId })
+                else {
+                    return false
+                }
+                var inEdit = tvm.items
+                let moved = inEdit.remove(at: fromIdx)
+                inEdit.append(moved)
+                tvm.items = inEdit
+                dragCoordinator.dragCancelled()
+                return true
+            }
     }
 
     @ViewBuilder

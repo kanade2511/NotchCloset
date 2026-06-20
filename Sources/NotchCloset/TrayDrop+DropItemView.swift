@@ -17,9 +17,11 @@ struct DropItemView: View {
     let isInitialBatch: Bool
     let cascadeCount: Int
     @StateObject var vm: NotchViewModel
+    @StateObject var tvm = TrayDrop.shared
     @ObservedObject var dragCoordinator = ItemDragCoordinator.shared
 
     @State var hover = false
+    @State var dropTargeted = false
 
     private var visible: Bool {
         !isInitialBatch || index < cascadeCount
@@ -46,8 +48,8 @@ struct DropItemView: View {
                 .animation(vm.animationRemove.delay(Double(total - 1 - index) * 0.04))
         ))
         .onHover { hover = $0 }
-        .scaleEffect(hover ? 1.05 : 1.0)
         .animation(vm.animationHover, value: hover)
+        .animation(vm.animationHover, value: dropTargeted)
         .onDrag {
             dragCoordinator.dragStarted(itemId: item.id)
             let sourceURL = item.sourceURL
@@ -77,6 +79,25 @@ struct DropItemView: View {
             provider.registerObject(sourceURL as NSURL, visibility: .all)
             return provider
         }
+        .onDrop(of: [.data, .directory, .folder, .url], isTargeted: $dropTargeted) { providers in
+            guard let draggedId = dragCoordinator.draggedItemId,
+                  draggedId != item.id,
+                  let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId }),
+                  let toIdx = tvm.items.firstIndex(where: { $0.id == item.id })
+            else {
+                return false
+            }
+
+            var inEdit = tvm.items
+            let moved = inEdit.remove(at: fromIdx)
+            let adjustedTo = fromIdx < toIdx ? toIdx - 1 : toIdx
+            inEdit.insert(moved, at: adjustedTo)
+            tvm.items = inEdit
+
+            dragCoordinator.dragCancelled()
+            return true
+        }
+        .scaleEffect(hover || dropTargeted ? 1.05 : 1.0)
         .onTapGesture {
             guard !vm.optionKeyPressed else { return }
             vm.notchClose()
