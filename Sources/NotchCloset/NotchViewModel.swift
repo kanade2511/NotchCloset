@@ -44,7 +44,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum OpenReason: String, Codable, Hashable, Equatable {
         case click
-        case hover
         case drag
         case boot
         case unknown
@@ -52,7 +51,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     enum ContentType: Int, Codable, Hashable, Equatable {
         case normal
-        case menu
     }
 
     var notchOpenedRect: CGRect {
@@ -61,15 +59,6 @@ class NotchViewModel: NSObject, ObservableObject {
             y: screenRect.origin.y + screenRect.height - notchOpenedSize.height,
             width: notchOpenedSize.width,
             height: notchOpenedSize.height
-        )
-    }
-
-    var headlineOpenedRect: CGRect {
-        .init(
-            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
-            y: screenRect.origin.y + screenRect.height - deviceNotchRect.height,
-            width: notchOpenedSize.width,
-            height: deviceNotchRect.height
         )
     }
 

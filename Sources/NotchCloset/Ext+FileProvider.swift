@@ -119,20 +119,3 @@ extension NSItemProvider {
         return text
     }
 }
-
-extension [NSItemProvider] {
-    func interfaceConvert() -> [URL]? {
-        let urls = compactMap { provider -> URL? in
-            provider.resolveAnyURL()
-        }
-        guard urls.count == count else {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                NSAlert.popError(
-                    NSLocalizedString("One or more files failed to load", comment: "")
-                )
-            }
-            return nil
-        }
-        return urls
-    }
-}

@@ -2,6 +2,9 @@ import Cocoa
 import Combine
 import Foundation
 import OrderedCollections
+import UniformTypeIdentifiers
+
+let supportedDropTypes: [UTType] = [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText]
 
 class TrayDrop: ObservableObject {
     static let shared = TrayDrop()

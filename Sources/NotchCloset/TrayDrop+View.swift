@@ -17,7 +17,7 @@ struct ItemFramePreference: PreferenceKey {
 
 struct TrayView: View {
     @StateObject var vm: NotchViewModel
-    @StateObject var tvm = TrayDrop.shared
+    @ObservedObject var tvm = TrayDrop.shared
     @ObservedObject var dragCoordinator = ItemDragCoordinator.shared
 
     @State private var targeting = false
@@ -54,7 +54,7 @@ struct TrayView: View {
 
     var body: some View {
         panel
-            .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $targeting) { providers in
+            .onDrop(of: supportedDropTypes, isTargeted: $targeting) { providers in
                 guard dragCoordinator.draggedItemId == nil else {
                     dragCoordinator.dragCancelled()
                     return true
@@ -234,7 +234,7 @@ struct TrayView: View {
         Color.clear
             .frame(width: 48, height: 64)
             .contentShape(Rectangle())
-            .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: .constant(false)) { _ in
+            .onDrop(of: supportedDropTypes, isTargeted: .constant(false)) { _ in
                 guard let draggedId = dragCoordinator.draggedItemId
                 else {
                     return false
@@ -293,7 +293,7 @@ struct TrayView: View {
         }
         .buttonStyle(.borderless)
         .padding(.leading, vm.spacing)
-        .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: .constant(false)) { _ in
+        .onDrop(of: supportedDropTypes, isTargeted: .constant(false)) { _ in
             tvm.deleteSelected()
             dragCoordinator.dragCancelled()
             return true
@@ -322,7 +322,7 @@ struct TrayView: View {
         .contentShape(Rectangle())
         .scaleEffect(trashHover ? 1.05 : 1.0)
         .padding(.leading, vm.spacing)
-        .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $trashHover) { _ in
+        .onDrop(of: supportedDropTypes, isTargeted: $trashHover) { _ in
             if let id = dragCoordinator.draggedItemId {
                 if tvm.selectedIDs.contains(id), tvm.selectedIDs.count > 1 {
                     tvm.deleteSelected()

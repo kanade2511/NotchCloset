@@ -18,7 +18,7 @@ struct DropItemView: View {
     let isInitialBatch: Bool
     let cascadeCount: Int
     @StateObject var vm: NotchViewModel
-    @StateObject var tvm = TrayDrop.shared
+    @ObservedObject var tvm = TrayDrop.shared
     @ObservedObject var dragCoordinator = ItemDragCoordinator.shared
 
     @State var hover = false
@@ -68,7 +68,7 @@ struct DropItemView: View {
                 onDragEnded: { dragCoordinator.dragCompleted(itemId: item.id) }
             )
         }
-        .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $dropTargeted) { providers in
+        .onDrop(of: supportedDropTypes, isTargeted: $dropTargeted) { providers in
             guard let draggedId = dragCoordinator.draggedItemId,
                   draggedId != item.id
             else {

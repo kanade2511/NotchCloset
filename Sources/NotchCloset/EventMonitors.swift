@@ -19,7 +19,6 @@ class EventMonitors {
 
     let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
     let mouseDown: PassthroughSubject<Void, Never> = .init()
-    let mouseDraggingFile: PassthroughSubject<Void, Never> = .init()
     let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
     let dragBegan: PassthroughSubject<Void, Never> = .init()
     let spaceKeyDown: PassthroughSubject<Void, Never> = .init()
@@ -43,7 +42,6 @@ class EventMonitors {
 
         mouseDraggingFileEvent = EventMonitor(mask: .leftMouseDragged) { [weak self] _ in
             guard let self else { return }
-            mouseDraggingFile.send()
             if NSPasteboard(name: .drag).changeCount != dragPasteboardBaseline {
                 dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
                 let types = NSPasteboard(name: .drag).types ?? []
