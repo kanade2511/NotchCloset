@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import SwiftUI
 
 private let notchHeight: CGFloat = 200
 
@@ -24,7 +25,7 @@ class NotchWindowController: NSWindowController {
 
         let vm = NotchViewModel(inset: notchSize == .zero ? 0 : -4)
         self.vm = vm
-        contentViewController = NotchViewController(vm)
+        contentViewController = NSHostingController(rootView: NotchView(vm: vm))
 
         if notchSize == .zero {
             notchSize = .init(width: 150, height: 28)

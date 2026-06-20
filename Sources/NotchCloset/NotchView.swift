@@ -51,7 +51,7 @@ struct NotchView: View {
                 if vm.status == .opened {
                     VStack(spacing: vm.spacing) {
                         NotchHeaderView(vm: vm)
-                        NotchContentView(vm: vm)
+                        TrayView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                     .padding(vm.spacing)
