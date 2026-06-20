@@ -56,6 +56,41 @@ class TrayDrop: ObservableObject {
     var customStorageTimeUnit: CustomstorageTimeUnit
 
     @Published var isLoading: Int = 0
+    @Published var selectedIDs: Set<DropItem.ID> = []
+    var lastSelectedID: DropItem.ID?
+
+    func toggleSelection(_ id: DropItem.ID) {
+        if selectedIDs.contains(id) {
+            selectedIDs.remove(id)
+        } else {
+            selectedIDs.insert(id)
+        }
+        lastSelectedID = id
+    }
+
+    func selectOnly(_ id: DropItem.ID) {
+        selectedIDs = [id]
+        lastSelectedID = id
+    }
+
+    func rangeSelect(to endID: DropItem.ID) {
+        guard let startID = lastSelectedID,
+              let startIdx = items.firstIndex(where: { $0.id == startID }),
+              let endIdx = items.firstIndex(where: { $0.id == endID })
+        else {
+            selectOnly(endID)
+            return
+        }
+        let range = min(startIdx, endIdx) ... max(startIdx, endIdx)
+        let ids = items[range].map { $0.id }
+        selectedIDs.formUnion(ids)
+        lastSelectedID = endID
+    }
+
+    func clearSelection() {
+        selectedIDs = []
+        lastSelectedID = nil
+    }
 
     func load(_ providers: [NSItemProvider]) {
         assert(!Thread.isMainThread)
@@ -170,6 +205,18 @@ class TrayDrop: ObservableObject {
         var inEdit = items
         inEdit.remove(item)
         items = inEdit
+        selectedIDs.remove(item.id)
+        if lastSelectedID == item.id { lastSelectedID = nil }
+    }
+
+    func deleteSelected() {
+        for id in selectedIDs {
+            if let item = items.first(where: { $0.id == id }) {
+                delete(item: item)
+            }
+        }
+        selectedIDs = []
+        lastSelectedID = nil
     }
 
     func removeAll() {

@@ -32,16 +32,25 @@ struct DropItemView: View {
             Image(nsImage: item.workspacePreviewImage)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 64)
+                .frame(maxWidth: 80, maxHeight: 56)
             Text(item.fileName)
                 .multilineTextAlignment(.center)
                 .font(.system(.footnote, design: .rounded))
-                .frame(maxWidth: 64)
+                .frame(maxWidth: 80)
+                .lineLimit(2)
+                .frame(minHeight: 28, alignment: .top)
         }
+        .frame(width: 84, height: 108)
+        .background {
+            if tvm.selectedIDs.contains(item.id) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.blue.opacity(0.18))
+            }
+        }
+        .contentShape(Rectangle())
         .opacity(visible ? 1 : 0)
         .offset(y: visible ? 0 : -16)
         .animation(vm.animationInsert, value: visible)
-        .contentShape(Rectangle())
         .transition(.asymmetric(
             insertion: .identity,
             removal: .opacity
@@ -88,8 +97,41 @@ struct DropItemView: View {
         }
         .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $dropTargeted) { providers in
             guard let draggedId = dragCoordinator.draggedItemId,
-                  draggedId != item.id,
-                  let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId }),
+                  draggedId != item.id
+            else {
+                return false
+            }
+
+            if tvm.selectedIDs.contains(draggedId), tvm.selectedIDs.count > 1 {
+                let selectedIds = tvm.selectedIDs
+                guard !selectedIds.contains(item.id) else { return false }
+
+                let selectedWithIdx: [(Int, TrayDrop.DropItem)] = tvm.items.enumerated()
+                    .filter { selectedIds.contains($0.element.id) }
+                    .map { ($0.offset, $0.element) }
+
+                var inEdit = tvm.items
+                for (idx, _) in selectedWithIdx.reversed() {
+                    inEdit.remove(at: idx)
+                }
+
+                guard let newTargetIdx = inEdit.firstIndex(where: { $0.id == item.id }) else {
+                    return false
+                }
+
+                let items = selectedWithIdx.map { $0.1 }
+                var insertIdx = newTargetIdx
+                for item in items {
+                    inEdit.insert(item, at: insertIdx)
+                    insertIdx += 1
+                }
+                tvm.items = inEdit
+
+                dragCoordinator.dragCancelled()
+                return true
+            }
+
+            guard let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId }),
                   let toIdx = tvm.items.firstIndex(where: { $0.id == item.id })
             else {
                 return false
@@ -105,8 +147,7 @@ struct DropItemView: View {
             return true
         }
         .scaleEffect(hover || dropTargeted ? 1.05 : 1.0)
-        .onTapGesture {
-            guard !vm.optionKeyPressed else { return }
+        .onTapGesture(count: 2) {
             vm.notchClose()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 if let text = item.textContent {
@@ -115,6 +156,14 @@ struct DropItemView: View {
                 } else {
                     NSWorkspace.shared.open(item.sourceURL)
                 }
+            }
+        }
+        .onTapGesture {
+            let cmdDown = NSApp.currentEvent?.modifierFlags.contains(.command) == true
+            if cmdDown {
+                tvm.toggleSelection(item.id)
+            } else {
+                tvm.selectOnly(item.id)
             }
         }
     }
