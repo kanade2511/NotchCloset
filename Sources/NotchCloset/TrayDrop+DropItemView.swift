@@ -52,15 +52,15 @@ struct DropItemView: View {
         .contentShape(Rectangle())
         .opacity(visible ? 1 : 0)
         .offset(y: visible ? 0 : -16)
-        .animation(vm.animationInsert, value: visible)
+        .animation(vm.insertAnimation, value: visible)
         .transition(.asymmetric(
             insertion: .identity,
             removal: .opacity
-                .animation(vm.animationRemove.delay(Double(total - 1 - index) * 0.04))
+                .animation(vm.removeAnimation.delay(Double(total - 1 - index) * 0.04))
         ))
         .onHover { hover = $0 }
-        .animation(vm.animationHover, value: hover)
-        .animation(vm.animationHover, value: dropTargeted)
+        .animation(vm.hoverAnimation, value: hover)
+        .animation(vm.hoverAnimation, value: dropTargeted)
         .overlay {
             DragSourceOverlay(
                 item: item,
@@ -79,42 +79,20 @@ struct DropItemView: View {
                 let selectedIds = tvm.selectedIDs
                 guard !selectedIds.contains(item.id) else { return false }
 
-                let selectedWithIdx: [(Int, TrayDrop.DropItem)] = tvm.items.enumerated()
-                    .filter { selectedIds.contains($0.element.id) }
-                    .map { ($0.offset, $0.element) }
-
-                var inEdit = tvm.items
-                for (idx, _) in selectedWithIdx.reversed() {
-                    inEdit.remove(at: idx)
-                }
-
-                guard let newTargetIdx = inEdit.firstIndex(where: { $0.id == item.id }) else {
+                guard let targetIdx = tvm.items.firstIndex(where: { $0.id == item.id }) else {
                     return false
                 }
-
-                let items = selectedWithIdx.map { $0.1 }
-                var insertIdx = newTargetIdx
-                for item in items {
-                    inEdit.insert(item, at: insertIdx)
-                    insertIdx += 1
-                }
-                tvm.items = inEdit
+                tvm.moveItems(ids: selectedIds, toIndex: targetIdx)
 
                 dragCoordinator.dragCancelled()
                 return true
             }
 
-            guard let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId }),
-                  let toIdx = tvm.items.firstIndex(where: { $0.id == item.id })
-            else {
+            guard tvm.items.contains(where: { $0.id == draggedId }) else {
                 return false
             }
 
-            var inEdit = tvm.items
-            let moved = inEdit.remove(at: fromIdx)
-            let adjustedTo = fromIdx < toIdx ? toIdx - 1 : toIdx
-            inEdit.insert(moved, at: adjustedTo)
-            tvm.items = inEdit
+            tvm.moveItems(ids: [draggedId], toIndex: index)
 
             dragCoordinator.dragCancelled()
             return true

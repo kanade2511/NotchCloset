@@ -19,7 +19,7 @@ extension NSScreen {
         return CGSize(width: notchWidth, height: notchHeight)
     }
 
-    var isBuildinDisplay: Bool {
+    var isBuiltinDisplay: Bool {
         let screenNumberKey = NSDeviceDescriptionKey(rawValue: "NSScreenNumber")
         guard let id = deviceDescription[screenNumberKey],
               let rid = (id as? NSNumber)?.uint32Value,
@@ -28,7 +28,7 @@ extension NSScreen {
         return true
     }
 
-    static var buildin: NSScreen? {
-        screens.first { $0.isBuildinDisplay }
+    static var builtin: NSScreen? {
+        screens.first { $0.isBuiltinDisplay }
     }
 }

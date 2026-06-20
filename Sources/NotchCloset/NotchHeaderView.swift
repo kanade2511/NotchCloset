@@ -14,7 +14,7 @@ struct NotchHeaderView: View {
                 .font(.system(.headline, design: .rounded))
             Spacer()
             Button {
-                (NSApp.delegate as? AppDelegate)?.openSettings()
+                vm.openSettings()
             } label: {
                 Image(systemName: "gearshape")
             }

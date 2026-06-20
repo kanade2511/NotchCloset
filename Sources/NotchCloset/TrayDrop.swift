@@ -56,7 +56,7 @@ class TrayDrop: ObservableObject {
     var customStorageTime: Int
 
     @PublishedPersist(key: "customStorageTimeUnit", defaultValue: .days)
-    var customStorageTimeUnit: CustomstorageTimeUnit
+    var customStorageTimeUnit: CustomStorageTimeUnit
 
     @Published var isLoading: Int = 0
     @Published var selectedIDs: Set<DropItem.ID> = []
@@ -76,23 +76,29 @@ class TrayDrop: ObservableObject {
         lastSelectedID = id
     }
 
-    func rangeSelect(to endID: DropItem.ID) {
-        guard let startID = lastSelectedID,
-              let startIdx = items.firstIndex(where: { $0.id == startID }),
-              let endIdx = items.firstIndex(where: { $0.id == endID })
-        else {
-            selectOnly(endID)
-            return
-        }
-        let range = min(startIdx, endIdx) ... max(startIdx, endIdx)
-        let ids = items[range].map { $0.id }
-        selectedIDs.formUnion(ids)
-        lastSelectedID = endID
-    }
-
     func clearSelection() {
         selectedIDs = []
         lastSelectedID = nil
+    }
+
+    func moveItems(ids: Set<DropItem.ID>, toIndex targetIdx: Int) {
+        let selectedWithIdx = items.enumerated()
+            .filter { ids.contains($0.element.id) }
+            .map { ($0.offset, $0.element) }
+        guard !selectedWithIdx.isEmpty else { return }
+
+        var inEdit = items
+        for (idx, _) in selectedWithIdx.reversed() {
+            inEdit.remove(at: idx)
+        }
+
+        let adjustedTarget = min(targetIdx, inEdit.count)
+        var insertIdx = adjustedTarget
+        for (_, item) in selectedWithIdx {
+            inEdit.insert(item, at: insertIdx)
+            insertIdx += 1
+        }
+        items = inEdit
     }
 
     func load(_ providers: [NSItemProvider]) {
@@ -264,7 +270,7 @@ extension TrayDrop {
         }
     }
 
-    enum CustomstorageTimeUnit: String, CaseIterable, Identifiable, Codable {
+    enum CustomStorageTimeUnit: String, CaseIterable, Identifiable, Codable {
         case hours = "Hours"
         case days = "Days"
         case weeks = "Weeks"

@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func findScreenFitsOurNeeds() -> NSScreen? {
-        if let screen = NSScreen.buildin, screen.notchSize != .zero { return screen }
+        if let screen = NSScreen.builtin, screen.notchSize != .zero { return screen }
         return .main
     }
 

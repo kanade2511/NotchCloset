@@ -25,16 +25,16 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
-    let animationOpen: Animation = .timingCurve(0.2, 0, 0, 1, duration: 0.35)
-    let animationClose: Animation = .timingCurve(0.4, 0, 0.2, 1, duration: 0.22)
-    let animationContent: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.28)
-    let animationInsert: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.35)
-    let animationRemove: Animation = .timingCurve(0.3, 0, 1, 1, duration: 0.18)
-    let animationHover: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.15)
-    let animationTrash: Animation = .spring(response: 0.28, dampingFraction: 0.8)
-    let animationPop: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.15)
-    let notchOpenedSize: CGSize = .init(width: 600, height: 160)
-    let dropDetectorRange: CGFloat = 32
+    let openAnimation: Animation = NotchDesignTokens.openAnimation
+    let closeAnimation: Animation = NotchDesignTokens.closeAnimation
+    let contentAnimation: Animation = NotchDesignTokens.contentAnimation
+    let insertAnimation: Animation = NotchDesignTokens.insertAnimation
+    let removeAnimation: Animation = NotchDesignTokens.removeAnimation
+    let hoverAnimation: Animation = NotchDesignTokens.hoverAnimation
+    let trashAnimation: Animation = NotchDesignTokens.trashAnimation
+    let popAnimation: Animation = NotchDesignTokens.popAnimation
+    let notchOpenedSize: CGSize = NotchDesignTokens.notchOpenedSize
+    let dropDetectorRange: CGFloat = NotchDesignTokens.dropDetectorRange
 
     enum Status: String, Codable, Hashable, Equatable {
         case closed
@@ -90,7 +90,7 @@ class NotchViewModel: NSObject, ObservableObject {
         dragOpenWorkItem = nil
         openReason = reason
         contentType = .normal
-        withAnimation(animationOpen) { status = .opened }
+        withAnimation(openAnimation) { status = .opened }
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -100,12 +100,16 @@ class NotchViewModel: NSObject, ObservableObject {
         dragOpenWorkItem?.cancel()
         dragOpenWorkItem = nil
         openReason = .unknown
-        withAnimation(animationClose) { status = .closed }
+        withAnimation(closeAnimation) { status = .closed }
         contentType = .normal
     }
 
     func notchPop() {
         openReason = .unknown
-        withAnimation(animationPop) { status = .popping }
+        withAnimation(popAnimation) { status = .popping }
+    }
+
+    func openSettings() {
+        (NSApp.delegate as? AppDelegate)?.openSettings()
     }
 }

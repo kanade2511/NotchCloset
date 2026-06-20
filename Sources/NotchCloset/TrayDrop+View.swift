@@ -128,8 +128,8 @@ struct TrayView: View {
                 content
                     .padding()
             }
-            .animation(vm.animationContent, value: tvm.items)
-            .animation(vm.animationContent, value: tvm.isLoading)
+            .animation(vm.contentAnimation, value: tvm.items)
+            .animation(vm.contentAnimation, value: tvm.isLoading)
     }
 
     var loading: some View {
@@ -215,7 +215,7 @@ struct TrayView: View {
                         deleteSelectedButton
                     } else if dragCoordinator.isDragging {
                         trashArea
-                            .transition(.opacity.animation(vm.animationTrash))
+                            .transition(.opacity.animation(vm.trashAnimation))
                     }
                 }
             }
@@ -234,28 +234,9 @@ struct TrayView: View {
                 }
 
                 if tvm.selectedIDs.contains(draggedId), tvm.selectedIDs.count > 1 {
-                    let selectedWithIdx: [(Int, TrayDrop.DropItem)] = tvm.items.enumerated()
-                        .filter { tvm.selectedIDs.contains($0.element.id) }
-                        .map { ($0.offset, $0.element) }
-
-                    var inEdit = tvm.items
-                    for (idx, _) in selectedWithIdx.reversed() {
-                        inEdit.remove(at: idx)
-                    }
-
-                    let items = selectedWithIdx.map { $0.1 }
-                    for item in items {
-                        inEdit.append(item)
-                    }
-                    tvm.items = inEdit
+                    tvm.moveItems(ids: tvm.selectedIDs, toIndex: tvm.items.count)
                 } else {
-                    guard let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId })
-                    else { return false }
-
-                    var inEdit = tvm.items
-                    let moved = inEdit.remove(at: fromIdx)
-                    inEdit.append(moved)
-                    tvm.items = inEdit
+                    tvm.moveItems(ids: [draggedId], toIndex: tvm.items.count)
                 }
                 dragCoordinator.dragCancelled()
                 return true
@@ -326,7 +307,7 @@ struct TrayView: View {
             }
             return true
         }
-        .animation(vm.animationHover, value: trashHover)
+        .animation(vm.hoverAnimation, value: trashHover)
     }
 
     private func selectionRect(from start: CGPoint, to end: CGPoint) -> CGRect {
