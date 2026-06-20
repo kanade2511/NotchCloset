@@ -57,16 +57,14 @@ struct NotchView: View {
                     .padding(vm.spacing)
                     .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
                     .zIndex(1)
+                    .transition(.asymmetric(
+                        insertion: .offset(y: -8).combined(with: .opacity),
+                        removal: .offset(y: -6).combined(with: .opacity)
+                    ))
                 }
             }
-            .transition(
-                .opacity.combined(
-                    with: .offset(y: -vm.notchOpenedSize.height / 2)
-                ).animation(vm.animation)
-            )
         }
         .background(dragDetector)
-        .animation(vm.animation, value: vm.status)
         .preferredColorScheme(.dark)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

@@ -25,7 +25,14 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
-    let animation: Animation = .timingCurve(0.0, 0.0, 0.3, 1.0, duration: 0.2)
+    let animationOpen: Animation = .timingCurve(0.2, 0, 0, 1, duration: 0.35)
+    let animationClose: Animation = .timingCurve(0.4, 0, 0.2, 1, duration: 0.22)
+    let animationContent: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.28)
+    let animationInsert: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.35)
+    let animationRemove: Animation = .timingCurve(0.3, 0, 1, 1, duration: 0.18)
+    let animationHover: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.15)
+    let animationTrash: Animation = .spring(response: 0.28, dampingFraction: 0.8)
+    let animationPop: Animation = .timingCurve(0, 0, 0.2, 1, duration: 0.15)
     let notchOpenedSize: CGSize = .init(width: 600, height: 160)
     let dropDetectorRange: CGFloat = 32
 
@@ -88,8 +95,8 @@ class NotchViewModel: NSObject, ObservableObject {
         closeWorkItem?.cancel()
         closeWorkItem = nil
         openReason = reason
-        status = .opened
         contentType = .normal
+        withAnimation(animationOpen) { status = .opened }
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -97,7 +104,7 @@ class NotchViewModel: NSObject, ObservableObject {
         closeWorkItem?.cancel()
         closeWorkItem = nil
         openReason = .unknown
-        status = .closed
+        withAnimation(animationClose) { status = .closed }
         contentType = .normal
     }
 
@@ -107,6 +114,6 @@ class NotchViewModel: NSObject, ObservableObject {
 
     func notchPop() {
         openReason = .unknown
-        status = .popping
+        withAnimation(animationPop) { status = .popping }
     }
 }

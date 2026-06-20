@@ -14,6 +14,7 @@ struct TrayView: View {
 
     @State private var targeting = false
     @State private var trashHover = false
+    @State private var initialBatchEnd = 0
 
     var storageTime: String {
         switch tvm.selectedFileStorageTime {
@@ -41,7 +42,10 @@ struct TrayView: View {
                 DispatchQueue.global().async { tvm.load(providers) }
                 return true
             }
-            .onAppear { tvm.cleanExpiredFiles() }
+            .onAppear {
+                tvm.cleanExpiredFiles()
+                initialBatchEnd = tvm.items.count
+            }
             .onChange(of: tvm.items.count) { _, _ in tvm.cleanExpiredFiles() }
             .onAppear { dragCoordinator.dragCancelled() }
     }
@@ -55,8 +59,8 @@ struct TrayView: View {
                 content
                     .padding()
             }
-            .animation(vm.animation, value: tvm.items)
-            .animation(vm.animation, value: tvm.isLoading)
+            .animation(vm.animationContent, value: tvm.items)
+            .animation(vm.animationContent, value: tvm.isLoading)
     }
 
     var loading: some View {
@@ -88,8 +92,15 @@ struct TrayView: View {
                 HStack(spacing: 0) {
                     ScrollView(.horizontal) {
                         HStack(spacing: vm.spacing) {
-                            ForEach(tvm.items) { item in
-                                DropItemView(item: item, vm: vm, tvm: tvm)
+                            ForEach(Array(tvm.items.enumerated()), id: \.element.id) { idx, item in
+                                DropItemView(
+                                    item: item,
+                                    index: idx,
+                                    total: tvm.items.count,
+                                    isInitialBatch: idx < initialBatchEnd,
+                                    vm: vm,
+                                    tvm: tvm
+                                )
                             }
                         }
                         .padding(vm.spacing)
@@ -99,7 +110,7 @@ struct TrayView: View {
 
                     if dragCoordinator.isDragging {
                         trashArea
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                            .transition(.move(edge: .trailing).combined(with: .opacity).animation(vm.animationTrash))
                     }
                 }
             }
@@ -135,7 +146,7 @@ struct TrayView: View {
             }
             return true
         }
-        .animation(vm.animation, value: trashHover)
+        .animation(vm.animationHover, value: trashHover)
     }
 }
 

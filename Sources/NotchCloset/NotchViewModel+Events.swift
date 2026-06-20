@@ -80,7 +80,7 @@ extension NotchViewModel {
             .filter { $0 != .closed }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                withAnimation(self?.animation) { self?.notchVisible = true }
+                withAnimation(self?.animationOpen) { self?.notchVisible = true }
             }
             .store(in: &cancellables)
 
@@ -105,11 +105,11 @@ extension NotchViewModel {
             .store(in: &cancellables)
 
         $status
-            .debounce(for: 0.5, scheduler: DispatchQueue.global())
+            .debounce(for: 0.35, scheduler: DispatchQueue.global())
             .filter { $0 == .closed }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                withAnimation(self?.animation) {
+                withAnimation(self?.animationClose) {
                     self?.notchVisible = false
                 }
             }
