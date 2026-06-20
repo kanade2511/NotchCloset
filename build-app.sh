@@ -17,6 +17,14 @@ mkdir -p "$MACOS" "$RESOURCES"
 
 cp "${BUILD_DIR}/${APP}" "${MACOS}/"
 
+# Bundle resources
+BUNDLE="${BUILD_DIR}/${APP}_${APP}.bundle"
+if [ -d "$BUNDLE" ]; then
+    find "$BUNDLE" -name '*.lproj' -type d | while read lproj; do
+        cp -R "$lproj" "$RESOURCES/"
+    done
+fi
+
 # Bundle Info.plist
 cat > "${CONTENTS}/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

@@ -35,7 +35,7 @@ enum Language: String, CaseIterable, Identifiable, Codable {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NSAlert.popRestart(
-                NSLocalizedString("The language has been changed. The app will restart.", comment: ""),
+                NSLocalizedString("The language has been changed. The app will restart for the changes to take effect.", comment: ""),
                 completion: relaunchApp
             )
         }
