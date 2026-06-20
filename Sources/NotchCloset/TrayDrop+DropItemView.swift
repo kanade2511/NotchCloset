@@ -41,10 +41,12 @@ struct DropItemView: View {
         .onDrag {
             dragCoordinator.dragStarted(itemId: item.id)
             let sourceURL = item.sourceURL
+            let isDir = (try? sourceURL.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             let provider = NSItemProvider()
             provider.suggestedName = item.fileName
+            let utType: UTType = isDir ? .directory : .data
             provider.registerFileRepresentation(
-                for: UTType.data,
+                for: utType,
                 visibility: .all
             ) { completion in
                 _ = sourceURL.startAccessingSecurityScopedResource()

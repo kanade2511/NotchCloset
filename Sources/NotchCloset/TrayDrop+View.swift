@@ -37,7 +37,7 @@ struct TrayView: View {
 
     var body: some View {
         panel
-            .onDrop(of: [.data], isTargeted: $targeting) { providers in
+            .onDrop(of: [.data, .directory, .folder], isTargeted: $targeting) { providers in
                 DispatchQueue.global().async { tvm.load(providers) }
                 return true
             }
@@ -128,7 +128,7 @@ struct TrayView: View {
         .contentShape(Rectangle())
         .scaleEffect(trashHover ? 1.05 : 1.0)
         .padding(.leading, vm.spacing)
-        .onDrop(of: [.data], isTargeted: $trashHover) { _ in
+        .onDrop(of: [.data, .directory, .folder], isTargeted: $trashHover) { _ in
             if let id = dragCoordinator.draggedItemId {
                 tvm.delete(id)
                 dragCoordinator.dragCancelled()

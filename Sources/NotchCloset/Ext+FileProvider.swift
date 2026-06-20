@@ -15,6 +15,7 @@ extension NSItemProvider {
         var url: URL?
         let sem = DispatchSemaphore(value: 0)
 
+        // Try 1: Load as URL object (works for both files and folders)
         _ = loadObject(ofClass: URL.self) { item, _ in
             defer { sem.signal() }
             guard let fileURL = item,
@@ -24,6 +25,7 @@ extension NSItemProvider {
         }
         sem.wait()
 
+        // Try 2: In-place file representation (for regular files)
         if url == nil {
             loadInPlaceFileRepresentation(
                 forTypeIdentifier: UTType.data.identifier
@@ -34,6 +36,19 @@ extension NSItemProvider {
             }
             sem.wait()
         }
+
+        // Try 3: In-place directory representation (for folders)
+        if url == nil {
+            loadInPlaceFileRepresentation(
+                forTypeIdentifier: UTType.directory.identifier
+            ) { input, _, _ in
+                defer { sem.signal() }
+                guard let input, input.isFileURL else { return }
+                url = input
+            }
+            sem.wait()
+        }
+
         return url
     }
 }
