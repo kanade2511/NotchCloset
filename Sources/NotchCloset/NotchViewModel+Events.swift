@@ -52,6 +52,13 @@ extension NotchViewModel {
             }
             .store(in: &cancellables)
 
+        events.spaceKeyDown
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                QuickLookHelper.shared.toggle()
+            }
+            .store(in: &cancellables)
+
         events.optionKeyPress
             .receive(on: DispatchQueue.main)
             .sink { [weak self] input in

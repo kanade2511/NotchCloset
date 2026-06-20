@@ -15,12 +15,14 @@ class EventMonitors {
     private var mouseDownEvent: EventMonitor!
     private var mouseDraggingFileEvent: EventMonitor!
     private var optionKeyPressEvent: EventMonitor!
+    private var spaceKeyEvent: EventMonitor!
 
     let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
     let mouseDown: PassthroughSubject<Void, Never> = .init()
     let mouseDraggingFile: PassthroughSubject<Void, Never> = .init()
     let optionKeyPress: CurrentValueSubject<Bool, Never> = .init(false)
     let dragBegan: PassthroughSubject<Void, Never> = .init()
+    let spaceKeyDown: PassthroughSubject<Void, Never> = .init()
 
     private var dragPasteboardBaseline = 0
 
@@ -69,5 +71,11 @@ class EventMonitors {
             }
         }
         optionKeyPressEvent.start()
+
+        spaceKeyEvent = EventMonitor(mask: .keyDown) { [weak self] event in
+            guard let self, let event, event.keyCode == 49 else { return }
+            spaceKeyDown.send()
+        }
+        spaceKeyEvent.start()
     }
 }
