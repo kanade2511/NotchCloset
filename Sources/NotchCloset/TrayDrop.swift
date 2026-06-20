@@ -60,30 +60,60 @@ class TrayDrop: ObservableObject {
     func load(_ providers: [NSItemProvider]) {
         assert(!Thread.isMainThread)
         DispatchQueue.main.asyncAndWait { isLoading += 1 }
-        guard let urls = providers.interfaceConvert() else {
+
+        var resolvedItems: [DropItem] = []
+        var allResolved = true
+
+        for provider in providers {
+            let types = provider.registeredTypeIdentifiers
+
+            let isTextProvider = types.contains(where: { $0.hasPrefix("public.utf") || $0.hasPrefix("public.rtf") || $0 == "public.plain-text" || $0 == "public.text" })
+            let isFileProvider = types.contains(where: { $0 == "public.file-url" || $0 == "public.data" || $0 == "public.directory" || $0 == "public.folder" })
+
+            if isTextProvider, !isFileProvider, let text = provider.resolveText() {
+                resolvedItems.append(DropItem(text: text))
+            } else if let url = provider.resolveAnyURL() {
+                do {
+                    resolvedItems.append(try DropItem(url: url))
+                } catch {
+                    allResolved = false
+                }
+            } else if let text = provider.resolveText() {
+                resolvedItems.append(DropItem(text: text))
+            } else {
+                allResolved = false
+            }
+        }
+
+        guard allResolved else {
             DispatchQueue.main.asyncAndWait { isLoading -= 1 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                NSAlert.popError(
+                    NSLocalizedString("One or more items failed to load", comment: "")
+                )
+            }
             return
         }
-        do {
-            let items = try urls.map { try DropItem(url: $0) }
-            DispatchQueue.main.async {
-                for item in items {
+
+        DispatchQueue.main.async {
+            for item in resolvedItems {
+                if item.isText {
+                    let text = item.textContent ?? ""
+                    if self.items.contains(where: { $0.textContent == text }) {
+                        continue
+                    }
+                } else {
                     let newPath = item.sourceURL.resolvingSymlinksInPath().absoluteString
                     if self.items.contains(where: { $0.sourceURL.resolvingSymlinksInPath().absoluteString == newPath }) {
                         continue
                     }
-                    self.items.updateOrInsert(item, at: 0)
-                    if item.isWebURL {
-                        self.fetchWebPreview(for: item.id, url: item.sourceURL)
-                    }
                 }
-                self.isLoading -= 1
+                self.items.updateOrInsert(item, at: 0)
+                if item.isWebURL {
+                    self.fetchWebPreview(for: item.id, url: item.sourceURL)
+                }
             }
-        } catch {
-            DispatchQueue.main.async {
-                self.isLoading -= 1
-                NSAlert.popError(error)
-            }
+            self.isLoading -= 1
         }
     }
 

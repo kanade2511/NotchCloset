@@ -52,6 +52,13 @@ struct DropItemView: View {
         .animation(vm.animationHover, value: dropTargeted)
         .onDrag {
             dragCoordinator.dragStarted(itemId: item.id)
+
+            if let text = item.textContent {
+                let provider = NSItemProvider(object: text as NSString)
+                provider.suggestedName = item.fileName
+                return provider
+            }
+
             let sourceURL = item.sourceURL
 
             if item.isWebURL {
@@ -79,7 +86,7 @@ struct DropItemView: View {
             provider.registerObject(sourceURL as NSURL, visibility: .all)
             return provider
         }
-        .onDrop(of: [.data, .directory, .folder, .url], isTargeted: $dropTargeted) { providers in
+        .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $dropTargeted) { providers in
             guard let draggedId = dragCoordinator.draggedItemId,
                   draggedId != item.id,
                   let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId }),
@@ -102,7 +109,12 @@ struct DropItemView: View {
             guard !vm.optionKeyPressed else { return }
             vm.notchClose()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                NSWorkspace.shared.open(item.sourceURL)
+                if let text = item.textContent {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                } else {
+                    NSWorkspace.shared.open(item.sourceURL)
+                }
             }
         }
     }

@@ -40,7 +40,7 @@ struct TrayView: View {
 
     var body: some View {
         panel
-            .onDrop(of: [.data, .directory, .folder, .url], isTargeted: $targeting) { providers in
+            .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $targeting) { providers in
                 guard dragCoordinator.draggedItemId == nil else {
                     dragCoordinator.dragCancelled()
                     return true
@@ -147,7 +147,7 @@ struct TrayView: View {
         Color.clear
             .frame(width: 48, height: 64)
             .contentShape(Rectangle())
-            .onDrop(of: [.data, .directory, .folder, .url], isTargeted: .constant(false)) { _ in
+            .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: .constant(false)) { _ in
                 guard let draggedId = dragCoordinator.draggedItemId,
                       let fromIdx = tvm.items.firstIndex(where: { $0.id == draggedId })
                 else {
@@ -184,7 +184,7 @@ struct TrayView: View {
         .contentShape(Rectangle())
         .scaleEffect(trashHover ? 1.05 : 1.0)
         .padding(.leading, vm.spacing)
-        .onDrop(of: [.data, .directory, .folder, .url], isTargeted: $trashHover) { _ in
+        .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $trashHover) { _ in
             if let id = dragCoordinator.draggedItemId {
                 tvm.delete(id)
                 dragCoordinator.dragCancelled()

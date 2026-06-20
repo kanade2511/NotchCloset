@@ -18,6 +18,7 @@ extension TrayDrop {
         var fileName: String
         let size: Int
         let sourceURL: URL
+        let textContent: String?
 
         let addedDate: Date
         var workspacePreviewImageData: Data
@@ -26,12 +27,17 @@ extension TrayDrop {
             sourceURL.scheme == "http" || sourceURL.scheme == "https"
         }
 
+        var isText: Bool {
+            textContent != nil
+        }
+
         init(url: URL) throws {
             assert(!Thread.isMainThread)
 
             id = UUID()
             sourceURL = url
             addedDate = Date()
+            textContent = nil
 
             if url.scheme == "http" || url.scheme == "https" {
                 fileName = url.host ?? url.absoluteString
@@ -44,9 +50,28 @@ extension TrayDrop {
             }
         }
 
+        init(text: String) {
+            id = UUID()
+            let snippet = String(text.prefix(80))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "\n", with: " ")
+            fileName = snippet.isEmpty ? "Text" : snippet
+            size = text.utf8.count
+            sourceURL = URL(string: "opaque://text/\(id.uuidString)")!
+            addedDate = Date()
+            workspacePreviewImageData = Self.textQuoteIcon().pngRepresentation
+            textContent = text
+        }
+
         private static func globeIcon() -> NSImage {
             let config = NSImage.SymbolConfiguration(pointSize: 64, weight: .light)
             return NSImage(systemSymbolName: "globe", accessibilityDescription: nil)?
+                .withSymbolConfiguration(config) ?? NSImage()
+        }
+
+        private static func textQuoteIcon() -> NSImage {
+            let config = NSImage.SymbolConfiguration(pointSize: 64, weight: .light)
+            return NSImage(systemSymbolName: "character.cursor.ibeam", accessibilityDescription: nil)?
                 .withSymbolConfiguration(config) ?? NSImage()
         }
     }
@@ -58,7 +83,7 @@ extension TrayDrop.DropItem {
     }
 
     var shouldClean: Bool {
-        if isWebURL { return false }
+        if isText || isWebURL { return false }
         return !FileManager.default.fileExists(atPath: sourceURL.path)
     }
 }

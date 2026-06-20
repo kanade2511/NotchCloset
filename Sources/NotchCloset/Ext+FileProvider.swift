@@ -15,7 +15,6 @@ extension NSItemProvider {
         var url: URL?
         let sem = DispatchSemaphore(value: 0)
 
-        // Try 1: Load as URL object (works for both files and folders)
         _ = loadObject(ofClass: URL.self) { item, _ in
             defer { sem.signal() }
             guard let fileURL = item,
@@ -25,7 +24,6 @@ extension NSItemProvider {
         }
         sem.wait()
 
-        // Try 2: In-place file representation (for regular files)
         if url == nil {
             loadInPlaceFileRepresentation(
                 forTypeIdentifier: UTType.data.identifier
@@ -37,7 +35,6 @@ extension NSItemProvider {
             sem.wait()
         }
 
-        // Try 3: In-place directory representation (for folders)
         if url == nil {
             loadInPlaceFileRepresentation(
                 forTypeIdentifier: UTType.directory.identifier
@@ -56,7 +53,6 @@ extension NSItemProvider {
         var url: URL?
         let sem = DispatchSemaphore(value: 0)
 
-        // Try 1: Load as any URL object (file or web)
         _ = loadObject(ofClass: URL.self) { item, _ in
             defer { sem.signal() }
             guard let anyURL = item else { return }
@@ -64,7 +60,6 @@ extension NSItemProvider {
         }
         sem.wait()
 
-        // Try 2: Load as plain text (may contain a URL)
         if url == nil {
             _ = loadObject(ofClass: String.self) { item, _ in
                 defer { sem.signal() }
@@ -77,12 +72,51 @@ extension NSItemProvider {
             sem.wait()
         }
 
-        // Try 3: Fallback to file URL resolution
         if url == nil {
             url = resolveFileURL()
         }
 
         return url
+    }
+
+    func resolveText() -> String? {
+        var text: String?
+        let sem = DispatchSemaphore(value: 0)
+
+        _ = loadObject(ofClass: String.self) { item, _ in
+            defer { sem.signal() }
+            guard let string = item,
+                  !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return }
+            text = string
+        }
+        sem.wait()
+
+        if text == nil {
+            loadItem(forTypeIdentifier: UTType.plainText.identifier) { item, _ in
+                defer { sem.signal() }
+                guard let data = item as? Data,
+                      let string = String(data: data, encoding: .utf8),
+                      !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                else { return }
+                text = string
+            }
+            sem.wait()
+        }
+
+        if text == nil {
+            loadItem(forTypeIdentifier: UTType.utf8PlainText.identifier) { item, _ in
+                defer { sem.signal() }
+                guard let data = item as? Data,
+                      let string = String(data: data, encoding: .utf8),
+                      !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                else { return }
+                text = string
+            }
+            sem.wait()
+        }
+
+        return text
     }
 }
 
