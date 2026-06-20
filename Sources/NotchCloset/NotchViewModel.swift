@@ -94,8 +94,11 @@ class NotchViewModel: NSObject, ObservableObject {
     var hapticFeedback: Bool
 
     let hapticSender = PassthroughSubject<Void, Never>()
+    var closeWorkItem: DispatchWorkItem?
 
     func notchOpen(_ reason: OpenReason) {
+        closeWorkItem?.cancel()
+        closeWorkItem = nil
         openReason = reason
         status = .opened
         contentType = .normal
@@ -103,6 +106,8 @@ class NotchViewModel: NSObject, ObservableObject {
     }
 
     func notchClose() {
+        closeWorkItem?.cancel()
+        closeWorkItem = nil
         openReason = .unknown
         status = .closed
         contentType = .normal

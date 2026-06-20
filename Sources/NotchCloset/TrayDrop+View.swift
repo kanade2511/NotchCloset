@@ -39,6 +39,8 @@ struct TrayView: View {
                 DispatchQueue.global().async { tvm.load(providers) }
                 return true
             }
+            .onAppear { tvm.cleanExpiredFiles() }
+            .onChange(of: tvm.items.count) { _, _ in tvm.cleanExpiredFiles() }
     }
 
     var panel: some View {

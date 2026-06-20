@@ -37,7 +37,30 @@ struct DropItemView: View {
         .onHover { hover = $0 }
         .scaleEffect(hover ? 1.05 : 1.0)
         .animation(vm.animation, value: hover)
-        .draggable(item)
+        .onDrag {
+            let provider = NSItemProvider()
+            provider.suggestedName = item.fileName
+            provider.registerFileRepresentation(
+                for: UTType.data,
+                visibility: .all
+            ) { completion in
+                let tempDir = temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                try? FileManager.default.createDirectory(
+                    at: tempDir,
+                    withIntermediateDirectories: true
+                )
+                let tempURL = tempDir
+                    .appendingPathComponent(item.fileName)
+                try? FileManager.default.copyItem(
+                    at: item.storageURL,
+                    to: tempURL
+                )
+                completion(tempURL, false, nil)
+                return nil
+            }
+            return provider
+        }
         .onTapGesture {
             guard !vm.optionKeyPressed else { return }
             vm.notchClose()
