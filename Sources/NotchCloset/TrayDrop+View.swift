@@ -71,7 +71,7 @@ struct TrayView: View {
                 storageTime
             ),
             "&",
-            NSLocalizedString("Press Option to delete", comment: ""),
+            NSLocalizedString("Hover to delete", comment: ""),
         ].joined(separator: " ")
     }
 

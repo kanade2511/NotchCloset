@@ -67,18 +67,6 @@ class NotchViewModel: NSObject, ObservableObject {
         )
     }
 
-    var hoverAreaRect: CGRect {
-        let scale: CGFloat = 1.5
-        let w = deviceNotchRect.width * scale
-        let h = deviceNotchRect.height * scale
-        return .init(
-            x: deviceNotchRect.midX - w / 2,
-            y: deviceNotchRect.maxY - h,
-            width: w,
-            height: h
-        )
-    }
-
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown
     @Published var contentType: ContentType = .normal

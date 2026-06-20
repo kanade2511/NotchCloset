@@ -93,7 +93,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let controller = mainWindowController,
               let window = controller.window,
               let vm = controller.vm,
-              vm.status == .opened
+              vm.status == .opened,
+              !window.isKeyWindow
         else { return }
         window.makeKeyAndOrderFront(nil)
     }

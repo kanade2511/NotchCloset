@@ -81,7 +81,7 @@ struct NotchView: View {
             )
             .shadow(
                 color: .black.opacity(([.opened, .popping].contains(vm.status)) ? 1 : 0),
-                radius: 16
+                radius: vm.status == .popping ? 8 : 16
             )
     }
 

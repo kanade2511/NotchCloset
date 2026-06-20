@@ -53,14 +53,14 @@ extension NotchViewModel {
             .sink { [weak self] mouseLocation in
                 guard let self else { return }
                 let mouseLocation: NSPoint = NSEvent.mouseLocation
+                let hoveringNotch = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
                 switch status {
                 case .closed:
-                    if hoverAreaRect.contains(mouseLocation) { notchOpen(.hover) }
+                    if hoveringNotch { notchPop() }
                 case .popping:
-                    if !hoverAreaRect.contains(mouseLocation) { notchClose() }
+                    if !hoveringNotch { notchClose() }
                 case .opened:
-                    let keepOpen = notchOpenedRect.contains(mouseLocation)
-                                || deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
+                    let keepOpen = notchOpenedRect.contains(mouseLocation) || hoveringNotch
                     if keepOpen {
                         closeWorkItem?.cancel()
                         closeWorkItem = nil
