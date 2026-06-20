@@ -15,24 +15,39 @@ extension TrayDrop {
     struct DropItem: Identifiable, Codable, Equatable, Hashable {
         let id: UUID
 
-        let fileName: String
+        var fileName: String
         let size: Int
-        /// Original file URL from the drag source.
         let sourceURL: URL
 
         let addedDate: Date
-        let workspacePreviewImageData: Data
+        var workspacePreviewImageData: Data
+
+        var isWebURL: Bool {
+            sourceURL.scheme == "http" || sourceURL.scheme == "https"
+        }
 
         init(url: URL) throws {
             assert(!Thread.isMainThread)
 
             id = UUID()
-            fileName = url.lastPathComponent
             sourceURL = url
-
-            size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
             addedDate = Date()
-            workspacePreviewImageData = url.snapshotPreview().pngRepresentation
+
+            if url.scheme == "http" || url.scheme == "https" {
+                fileName = url.host ?? url.absoluteString
+                size = 0
+                workspacePreviewImageData = Self.globeIcon().pngRepresentation
+            } else {
+                fileName = url.lastPathComponent
+                size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                workspacePreviewImageData = url.snapshotPreview().pngRepresentation
+            }
+        }
+
+        private static func globeIcon() -> NSImage {
+            let config = NSImage.SymbolConfiguration(pointSize: 64, weight: .light)
+            return NSImage(systemSymbolName: "globe", accessibilityDescription: nil)?
+                .withSymbolConfiguration(config) ?? NSImage()
         }
     }
 }
@@ -43,6 +58,7 @@ extension TrayDrop.DropItem {
     }
 
     var shouldClean: Bool {
-        !FileManager.default.fileExists(atPath: sourceURL.path)
+        if isWebURL { return false }
+        return !FileManager.default.fileExists(atPath: sourceURL.path)
     }
 }

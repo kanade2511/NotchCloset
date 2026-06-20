@@ -51,12 +51,45 @@ extension NSItemProvider {
 
         return url
     }
+
+    func resolveAnyURL() -> URL? {
+        var url: URL?
+        let sem = DispatchSemaphore(value: 0)
+
+        // Try 1: Load as any URL object (file or web)
+        _ = loadObject(ofClass: URL.self) { item, _ in
+            defer { sem.signal() }
+            guard let anyURL = item else { return }
+            url = anyURL
+        }
+        sem.wait()
+
+        // Try 2: Load as plain text (may contain a URL)
+        if url == nil {
+            _ = loadObject(ofClass: String.self) { item, _ in
+                defer { sem.signal() }
+                guard let text = item?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      let detectedURL = URL(string: text),
+                      detectedURL.scheme == "http" || detectedURL.scheme == "https"
+                else { return }
+                url = detectedURL
+            }
+            sem.wait()
+        }
+
+        // Try 3: Fallback to file URL resolution
+        if url == nil {
+            url = resolveFileURL()
+        }
+
+        return url
+    }
 }
 
 extension [NSItemProvider] {
     func interfaceConvert() -> [URL]? {
         let urls = compactMap { provider -> URL? in
-            provider.resolveFileURL()
+            provider.resolveAnyURL()
         }
         guard urls.count == count else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

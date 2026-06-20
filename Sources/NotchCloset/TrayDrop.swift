@@ -67,7 +67,16 @@ class TrayDrop: ObservableObject {
         do {
             let items = try urls.map { try DropItem(url: $0) }
             DispatchQueue.main.async {
-                items.forEach { self.items.updateOrInsert($0, at: 0) }
+                for item in items {
+                    let newPath = item.sourceURL.resolvingSymlinksInPath().absoluteString
+                    if self.items.contains(where: { $0.sourceURL.resolvingSymlinksInPath().absoluteString == newPath }) {
+                        continue
+                    }
+                    self.items.updateOrInsert(item, at: 0)
+                    if item.isWebURL {
+                        self.fetchWebPreview(for: item.id, url: item.sourceURL)
+                    }
+                }
                 self.isLoading -= 1
             }
         } catch {
@@ -76,6 +85,41 @@ class TrayDrop: ObservableObject {
                 NSAlert.popError(error)
             }
         }
+    }
+
+    private func fetchWebPreview(for itemId: DropItem.ID, url: URL) {
+        guard let host = url.host else { return }
+        let faviconURL = URL(string: "https://www.google.com/s2/favicons?sz=64&domain_url=\(host)")
+
+        DispatchQueue.global().async {
+            if let favURL = faviconURL,
+               let data = try? Data(contentsOf: favURL),
+               NSImage(data: data) != nil {
+                DispatchQueue.main.async {
+                    self.updateItem(id: itemId, iconData: data)
+                }
+            }
+
+            if let html = try? String(contentsOf: url, encoding: .utf8),
+               let titleStart = html.range(of: "<title>"),
+               let titleEnd = html.range(of: "</title>", range: titleStart.upperBound..<html.endIndex) {
+                let title = String(html[titleStart.upperBound..<titleEnd.lowerBound])
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !title.isEmpty {
+                    DispatchQueue.main.async {
+                        self.updateItem(id: itemId, fileName: title)
+                    }
+                }
+            }
+        }
+    }
+
+    private func updateItem(id: DropItem.ID, fileName: String? = nil, iconData: Data? = nil) {
+        guard let idx = items.firstIndex(where: { $0.id == id }) else { return }
+        var item = items.remove(at: idx)
+        if let fileName { item.fileName = fileName }
+        if let iconData { item.workspacePreviewImageData = iconData }
+        items.insert(item, at: idx)
     }
 
     func cleanExpiredFiles() {

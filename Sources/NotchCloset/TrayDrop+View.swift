@@ -15,6 +15,7 @@ struct TrayView: View {
     @State private var targeting = false
     @State private var trashHover = false
     @State private var initialBatchEnd = 0
+    @State private var cascadeCount = 0
 
     var storageTime: String {
         switch tvm.selectedFileStorageTime {
@@ -38,16 +39,31 @@ struct TrayView: View {
 
     var body: some View {
         panel
-            .onDrop(of: [.data, .directory, .folder], isTargeted: $targeting) { providers in
+            .onDrop(of: [.data, .directory, .folder, .url], isTargeted: $targeting) { providers in
+                guard dragCoordinator.draggedItemId == nil else {
+                    dragCoordinator.dragCancelled()
+                    return true
+                }
                 DispatchQueue.global().async { tvm.load(providers) }
                 return true
             }
             .onAppear {
                 tvm.cleanExpiredFiles()
                 initialBatchEnd = tvm.items.count
+                cascadeCount = 0
+                var step = 0
+                let maxItems = tvm.items.count
+                if maxItems > 0 {
+                    Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { timer in
+                        step += 1
+                        cascadeCount = step
+                        if step >= maxItems {
+                            timer.invalidate()
+                        }
+                    }
+                }
             }
             .onChange(of: tvm.items.count) { _, _ in tvm.cleanExpiredFiles() }
-            .onAppear { dragCoordinator.dragCancelled() }
     }
 
     var panel: some View {
@@ -92,16 +108,16 @@ struct TrayView: View {
                 HStack(spacing: 0) {
                     ScrollView(.horizontal) {
                         HStack(spacing: vm.spacing) {
-                            ForEach(Array(tvm.items.enumerated()), id: \.element.id) { idx, item in
-                                DropItemView(
-                                    item: item,
-                                    index: idx,
-                                    total: tvm.items.count,
-                                    isInitialBatch: idx < initialBatchEnd,
-                                    vm: vm,
-                                    tvm: tvm
-                                )
-                            }
+                                ForEach(Array(tvm.items.enumerated()), id: \.element.id) { idx, item in
+                                    DropItemView(
+                                        item: item,
+                                        index: idx,
+                                        total: tvm.items.count,
+                                        isInitialBatch: idx < initialBatchEnd,
+                                        cascadeCount: cascadeCount,
+                                        vm: vm
+                                    )
+                                }
                         }
                         .padding(vm.spacing)
                     }
@@ -139,7 +155,7 @@ struct TrayView: View {
         .contentShape(Rectangle())
         .scaleEffect(trashHover ? 1.05 : 1.0)
         .padding(.leading, vm.spacing)
-        .onDrop(of: [.data, .directory, .folder], isTargeted: $trashHover) { _ in
+        .onDrop(of: [.data, .directory, .folder, .url], isTargeted: $trashHover) { _ in
             if let id = dragCoordinator.draggedItemId {
                 tvm.delete(id)
                 dragCoordinator.dragCancelled()
