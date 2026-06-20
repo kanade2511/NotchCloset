@@ -16,6 +16,7 @@ struct TrayView: View {
     @State private var trashHover = false
     @State private var initialBatchEnd = 0
     @State private var cascadeCount = 0
+    @State private var cascadeDidRun = false
 
     var storageTime: String {
         switch tvm.selectedFileStorageTime {
@@ -48,6 +49,9 @@ struct TrayView: View {
                 return true
             }
             .onAppear {
+                guard !cascadeDidRun else { return }
+                cascadeDidRun = true
+
                 tvm.cleanExpiredFiles()
                 initialBatchEnd = tvm.items.count
                 cascadeCount = 0
