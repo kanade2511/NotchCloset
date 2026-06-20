@@ -9,6 +9,7 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import Cocoa
 
 struct DropItemView: View {
     let item: TrayDrop.DropItem
@@ -22,6 +23,7 @@ struct DropItemView: View {
 
     @State var hover = false
     @State var dropTargeted = false
+    @State private var dragImage: NSImage?
 
     private var visible: Bool {
         !isInitialBatch || index < cascadeCount
@@ -32,15 +34,15 @@ struct DropItemView: View {
             Image(nsImage: item.workspacePreviewImage)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 80, maxHeight: 56)
+                .frame(maxWidth: 32, maxHeight: 32)
             Text(item.fileName)
                 .multilineTextAlignment(.center)
                 .font(.system(.footnote, design: .rounded))
-                .frame(maxWidth: 80)
+                .frame(maxWidth: 56)
                 .lineLimit(2)
                 .frame(minHeight: 28, alignment: .top)
         }
-        .frame(width: 84, height: 108)
+        .frame(width: 60, height: 78)
         .background {
             if tvm.selectedIDs.contains(item.id) {
                 RoundedRectangle(cornerRadius: 8)
@@ -59,41 +61,12 @@ struct DropItemView: View {
         .onHover { hover = $0 }
         .animation(vm.animationHover, value: hover)
         .animation(vm.animationHover, value: dropTargeted)
-        .onDrag {
-            dragCoordinator.dragStarted(itemId: item.id)
-
-            if let text = item.textContent {
-                let provider = NSItemProvider(object: text as NSString)
-                provider.suggestedName = item.fileName
-                return provider
-            }
-
-            let sourceURL = item.sourceURL
-
-            if item.isWebURL {
-                let provider = NSItemProvider(object: sourceURL as NSURL)
-                provider.suggestedName = item.fileName
-                return provider
-            }
-
-            let provider = NSItemProvider()
-            provider.suggestedName = item.fileName
-
-            let uti = (try? sourceURL.resourceValues(forKeys: [.typeIdentifierKey]))?.typeIdentifier
-                ?? UTType.data.identifier
-
-            provider.registerFileRepresentation(
-                forTypeIdentifier: uti,
-                visibility: .all
-            ) { completion in
-                _ = sourceURL.startAccessingSecurityScopedResource()
-                defer { sourceURL.stopAccessingSecurityScopedResource() }
-                completion(sourceURL, true, nil)
-                return nil
-            }
-
-            provider.registerObject(sourceURL as NSURL, visibility: .all)
-            return provider
+        .overlay {
+            DragSourceOverlay(
+                item: item,
+                onDragStarted: { dragCoordinator.dragStarted(itemId: item.id) },
+                onDragEnded: { dragCoordinator.dragCompleted(itemId: item.id) }
+            )
         }
         .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: $dropTargeted) { providers in
             guard let draggedId = dragCoordinator.draggedItemId,
@@ -166,5 +139,93 @@ struct DropItemView: View {
                 tvm.selectOnly(item.id)
             }
         }
+    }
+}
+
+private struct DragSourceOverlay: NSViewRepresentable {
+    let item: TrayDrop.DropItem
+    let onDragStarted: () -> Void
+    let onDragEnded: () -> Void
+
+    func makeNSView(context: Context) -> DragSourceView {
+        DragSourceView()
+    }
+
+    func updateNSView(_ nsView: DragSourceView, context: Context) {
+        nsView.item = item
+        nsView.onDragStarted = onDragStarted
+        nsView.onDragEnded = onDragEnded
+    }
+}
+
+private final class DragSourceView: NSView, NSDraggingSource {
+    var item: TrayDrop.DropItem?
+    var onDragStarted: (() -> Void)?
+    var onDragEnded: (() -> Void)?
+
+    private var mouseDownPoint: NSPoint = .zero
+    private let dragThreshold: CGFloat = 3
+
+    override func mouseDown(with event: NSEvent) {
+        mouseDownPoint = convert(event.locationInWindow, from: nil)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let dx = abs(point.x - mouseDownPoint.x)
+        let dy = abs(point.y - mouseDownPoint.y)
+        guard dx > dragThreshold || dy > dragThreshold else { return }
+
+        guard let item else { return }
+        let tvm = TrayDrop.shared
+        let selectedIds = tvm.selectedIDs
+
+        let dragItems: [TrayDrop.DropItem]
+        if selectedIds.contains(item.id), selectedIds.count > 1 {
+            dragItems = tvm.items.filter { selectedIds.contains($0.id) }
+        } else {
+            dragItems = [item]
+        }
+
+        var draggingItems: [NSDraggingItem] = []
+        for each in dragItems {
+            if let text = each.textContent {
+                let pb = NSPasteboardItem()
+                pb.setString(text, forType: .string)
+                let di = NSDraggingItem(pasteboardWriter: pb)
+                di.setDraggingFrame(bounds, contents: each.workspacePreviewImage)
+                draggingItems.append(di)
+            } else if each.isWebURL {
+                let pb = NSPasteboardItem()
+                pb.setString(each.sourceURL.absoluteString, forType: .URL)
+                pb.setString(each.sourceURL.absoluteString, forType: .string)
+                let di = NSDraggingItem(pasteboardWriter: pb)
+                di.setDraggingFrame(bounds, contents: each.workspacePreviewImage)
+                draggingItems.append(di)
+            } else {
+                let pb = NSPasteboardItem()
+                pb.setString(each.sourceURL.absoluteString, forType: .fileURL)
+                let di = NSDraggingItem(pasteboardWriter: pb)
+                di.setDraggingFrame(bounds, contents: each.workspacePreviewImage)
+                draggingItems.append(di)
+            }
+        }
+
+        guard !draggingItems.isEmpty else { return }
+        onDragStarted?()
+
+        beginDraggingSession(with: draggingItems, event: event, source: self)
+    }
+
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        switch context {
+        case .outsideApplication: [.copy, .move]
+        case .withinApplication:  [.copy, .move, .generic]
+        @unknown default:         .copy
+        }
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        onDragEnded?()
     }
 }

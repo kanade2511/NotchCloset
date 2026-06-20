@@ -210,7 +210,8 @@ class TrayDrop: ObservableObject {
     }
 
     func deleteSelected() {
-        for id in selectedIDs {
+        let ids = selectedIDs
+        for id in ids {
             if let item = items.first(where: { $0.id == id }) {
                 delete(item: item)
             }

@@ -26,6 +26,11 @@ struct TrayView: View {
     @State private var cascadeCount = 0
     @State private var cascadeDidRun = false
     @State private var itemFrames: [TrayDrop.DropItem.ID: CGRect] = [:]
+    @State private var contentFrame: CGRect = .zero
+    @State private var selectionStart: CGPoint?
+    @State private var selectionEnd: CGPoint?
+    @State private var isSelecting = false
+    @State private var eventMonitor: Any?
 
     var storageTime: String {
         switch tvm.selectedFileStorageTime {
@@ -77,6 +82,48 @@ struct TrayView: View {
                 }
             }
             .onChange(of: tvm.items.count) { _, _ in tvm.cleanExpiredFiles() }
+            .onAppear {
+                eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { event in
+                    guard !contentFrame.isEmpty else { return event }
+                    let windowHeight = event.window?.frame.height ?? 0
+                    let pointInWindow = CGPoint(
+                        x: event.locationInWindow.x,
+                        y: windowHeight - event.locationInWindow.y
+                    )
+                    let localPoint = CGPoint(
+                        x: pointInWindow.x - contentFrame.minX,
+                        y: pointInWindow.y - contentFrame.minY
+                    )
+
+                    switch event.type {
+                    case .leftMouseDown:
+                        let onItem = itemFrames.values.contains { $0.contains(localPoint) }
+                        guard !onItem else { break }
+                        selectionStart = localPoint
+                        selectionEnd = localPoint
+                        isSelecting = true
+                        DispatchQueue.main.async { tvm.clearSelection() }
+                    case .leftMouseDragged:
+                        guard isSelecting else { break }
+                        selectionEnd = localPoint
+                        updateSelectionFromRect()
+                    case .leftMouseUp:
+                        guard isSelecting else { break }
+                        isSelecting = false
+                        selectionStart = nil
+                        selectionEnd = nil
+                    default:
+                        break
+                    }
+                    return event
+                }
+            }
+            .onDisappear {
+                if let monitor = eventMonitor {
+                    NSEvent.removeMonitor(monitor)
+                    eventMonitor = nil
+                }
+            }
     }
 
     var panel: some View {
@@ -144,16 +191,31 @@ struct TrayView: View {
                                 }
                         }
                         .padding(vm.spacing)
-                        .coordinateSpace(name: "content")
-                        .background(SelectionOverlay(itemFrames: itemFrames))
                     }
+                    .coordinateSpace(name: "content")
                     .padding(-vm.spacing)
                     .scrollIndicators(.never)
+                    .background(GeometryReader { geo in
+                        Color.clear.onAppear {
+                            contentFrame = geo.frame(in: .global)
+                        }.onChange(of: geo.frame(in: .global)) { _, f in
+                            contentFrame = f
+                        }
+                    })
                     .onTapGesture {
                         tvm.clearSelection()
                     }
                     .onPreferenceChange(ItemFramePreference.self) { frames in
                         itemFrames = frames
+                    }
+                    .overlay {
+                        if isSelecting, let start = selectionStart, let end = selectionEnd {
+                            let rect = selectionRect(from: start, to: end)
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(.blue.opacity(0.7), lineWidth: 1.5)
+                                .frame(width: rect.width, height: rect.height)
+                                .position(x: rect.midX, y: rect.midY)
+                        }
                     }
 
                     if tvm.selectedIDs.count > 1 {
@@ -209,27 +271,32 @@ struct TrayView: View {
 
     @ViewBuilder
     private var deleteSelectedButton: some View {
-        VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.red.opacity(0.06))
-                .overlay {
-                    Image(systemName: "trash")
-                        .font(.title2)
-                        .foregroundStyle(.white.opacity(0.7))
-                }
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: 64)
-
-            Text(String(format: NSLocalizedString("Delete %d", comment: ""), tvm.selectedIDs.count))
-                .multilineTextAlignment(.center)
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.white.opacity(0.7))
-                .frame(maxWidth: 64)
-        }
-        .contentShape(Rectangle())
-        .padding(.leading, vm.spacing)
-        .onTapGesture {
+        Button {
             tvm.deleteSelected()
+        } label: {
+            VStack(spacing: 4) {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.red.opacity(0.06))
+                    .overlay {
+                        Image(systemName: "trash")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
+                    .frame(width: 44, height: 44)
+
+                Text(String(format: NSLocalizedString("Delete %d", comment: ""), tvm.selectedIDs.count))
+                    .multilineTextAlignment(.center)
+                    .font(.system(.footnote, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(maxWidth: 64)
+            }
+        }
+        .buttonStyle(.borderless)
+        .padding(.leading, vm.spacing)
+        .onDrop(of: [.data, .directory, .folder, .url, .text, .plainText, .utf8PlainText], isTargeted: .constant(false)) { _ in
+            tvm.deleteSelected()
+            dragCoordinator.dragCancelled()
+            return true
         }
     }
 
@@ -268,80 +335,24 @@ struct TrayView: View {
         }
         .animation(vm.animationHover, value: trashHover)
     }
-}
 
-struct SelectionOverlay: NSViewRepresentable {
-    var itemFrames: [TrayDrop.DropItem.ID: CGRect]
-
-    func makeNSView(context: Context) -> SelectionOverlayView {
-        SelectionOverlayView()
-    }
-
-    func updateNSView(_ nsView: SelectionOverlayView, context: Context) {
-        nsView.itemFrames = itemFrames
-    }
-}
-
-class SelectionOverlayView: NSView {
-    var itemFrames: [TrayDrop.DropItem.ID: CGRect] = [:]
-
-    private var dragStart: NSPoint = .zero
-    private var dragCurrent: NSPoint = .zero
-    private var isDragging = false
-    private let minimumDragDistance: CGFloat = 4
-
-    override func mouseDown(with event: NSEvent) {
-        dragStart = convert(event.locationInWindow, from: nil)
-        dragCurrent = dragStart
-        isDragging = false
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        dragCurrent = point
-
-        let dx = abs(point.x - dragStart.x)
-        let dy = abs(point.y - dragStart.y)
-
-        if dx > minimumDragDistance || dy > minimumDragDistance {
-            if !isDragging {
-                isDragging = true
-                TrayDrop.shared.clearSelection()
-            }
-        }
-
-        if isDragging {
-            selectIntersectingItems()
-        }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        if isDragging {
-            selectIntersectingItems()
-        } else {
-            TrayDrop.shared.clearSelection()
-        }
-        isDragging = false
-        dragStart = .zero
-        dragCurrent = .zero
-    }
-
-    private var currentRect: CGRect {
-        let minX = min(dragStart.x, dragCurrent.x)
-        let maxX = max(dragStart.x, dragCurrent.x)
-        let minY = min(dragStart.y, dragCurrent.y)
-        let maxY = max(dragStart.y, dragCurrent.y)
+    private func selectionRect(from start: CGPoint, to end: CGPoint) -> CGRect {
+        let minX = min(start.x, end.x)
+        let minY = min(start.y, end.y)
+        let maxX = max(start.x, end.x)
+        let maxY = max(start.y, end.y)
         return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
-    private func selectIntersectingItems() {
-        let rect = currentRect
+    private func updateSelectionFromRect() {
+        guard let start = selectionStart, let end = selectionEnd else { return }
+        let rect = selectionRect(from: start, to: end)
         guard !rect.isEmpty else { return }
         let ids = itemFrames.compactMap { id, frame in
             frame.intersects(rect) ? id : nil
         }
         if !ids.isEmpty {
-            TrayDrop.shared.selectedIDs = Set(ids)
+            tvm.selectedIDs = Set(ids)
         }
     }
 }
