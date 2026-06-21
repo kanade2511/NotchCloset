@@ -208,9 +208,7 @@ struct TrayView: View {
                         }
                     }
 
-                    if dragCoordinator.isDragging {
-                        TrayPluginZone()
-                    }
+                    TrayPluginZone()
 
                     if tvm.selectedIDs.count > 1 {
                         deleteSelectedButton
