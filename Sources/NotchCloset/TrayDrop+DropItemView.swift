@@ -117,5 +117,46 @@ struct DropItemView: View {
                 tvm.selectOnly(item.id)
             }
         }
+        .contextMenu {
+            if let text = item.textContent {
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                } label: {
+                    Label(NSLocalizedString("Copy Text", comment: ""), systemImage: "doc.on.doc")
+                }
+            } else if item.isWebURL {
+                Button {
+                    _ = item.accessSource { NSWorkspace.shared.open($0) }
+                } label: {
+                    Label(NSLocalizedString("Open in Browser", comment: ""), systemImage: "safari")
+                }
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(item.sourceURL.absoluteString, forType: .string)
+                } label: {
+                    Label(NSLocalizedString("Copy Link", comment: ""), systemImage: "link")
+                }
+            } else {
+                Button {
+                    _ = item.accessSource { NSWorkspace.shared.open($0) }
+                } label: {
+                    Label(NSLocalizedString("Open", comment: ""), systemImage: "arrow.up.forward.app")
+                }
+                Button {
+                    _ = item.accessSource { url in
+                        NSWorkspace.shared.activateFileViewerSelecting([url])
+                    }
+                } label: {
+                    Label(NSLocalizedString("Show in Finder", comment: ""), systemImage: "folder")
+                }
+                Divider()
+                Button {
+                    tvm.trashFiles(ids: [item.id])
+                } label: {
+                    Label(NSLocalizedString("Move to Trash", comment: ""), systemImage: "trash")
+                }
+            }
+        }
     }
 }
