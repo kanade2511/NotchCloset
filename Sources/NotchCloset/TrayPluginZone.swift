@@ -6,12 +6,9 @@ struct TrayPluginZone: View {
     @StateObject var tvm = TrayDrop.shared
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(Array(pluginManager.enabledPlugins), id: \.id) { plugin in
-                PluginDropTarget(plugin: plugin)
-            }
+        ForEach(Array(pluginManager.enabledPlugins), id: \.id) { plugin in
+            PluginDropTarget(plugin: plugin)
         }
-        .padding(.leading, 8)
     }
 }
 
@@ -30,21 +27,31 @@ struct PluginDropTarget: View {
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(plugin.tint.opacity(isHovered ? 0.3 : 0.1))
-            .frame(width: 48, height: 64)
-            .overlay {
-                Image(systemName: plugin.icon)
-                    .font(.title2)
-                    .foregroundStyle(plugin.tint.opacity(isHovered ? 1 : 0.5))
-            }
-            .contentShape(Rectangle())
-            .scaleEffect(isHovered ? 1.05 : 1.0)
-            .onDrop(of: supportedDropTypes, isTargeted: $isHovered) { providers in
-                plugin.onDrop(providers: providers, itemIDs: draggedIDs)
-                dragCoordinator.dragCancelled()
-                return true
-            }
-            .animation(.easeOut(duration: 0.15), value: isHovered)
+        VStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(plugin.tint.opacity(isHovered ? 0.3 : 0.06))
+                .overlay {
+                    Image(systemName: plugin.icon)
+                        .font(.title2)
+                        .foregroundStyle(.white.opacity(isHovered ? 1 : 0.35))
+                }
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: 64)
+
+            Text(plugin.name)
+                .multilineTextAlignment(.center)
+                .font(.system(.footnote, design: .rounded))
+                .foregroundStyle(.white.opacity(isHovered ? 1 : 0.35))
+                .frame(maxWidth: 64)
+        }
+        .contentShape(Rectangle())
+        .scaleEffect(isHovered ? 1.05 : 1.0)
+        .padding(.leading, 8)
+        .onDrop(of: supportedDropTypes, isTargeted: $isHovered) { providers in
+            plugin.onDrop(providers: providers, itemIDs: draggedIDs)
+            dragCoordinator.dragCancelled()
+            return true
+        }
+        .animation(.easeOut(duration: 0.15), value: isHovered)
     }
 }
