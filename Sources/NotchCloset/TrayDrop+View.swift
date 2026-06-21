@@ -179,9 +179,6 @@ struct TrayView: View {
                                     })
                                 }
 
-                                if dragCoordinator.isDragging {
-                                    endDropZone
-                                }
                         }
                         .padding(vm.spacing)
                     }
@@ -211,6 +208,10 @@ struct TrayView: View {
                         }
                     }
 
+                    if dragCoordinator.isDragging {
+                        TrayPluginZone()
+                    }
+
                     if tvm.selectedIDs.count > 1 {
                         deleteSelectedButton
                     } else if dragCoordinator.isDragging {
@@ -220,27 +221,6 @@ struct TrayView: View {
                 }
             }
         }
-    }
-
-    @ViewBuilder
-    private var endDropZone: some View {
-        Color.clear
-            .frame(width: 48, height: 64)
-            .contentShape(Rectangle())
-            .onDrop(of: supportedDropTypes, isTargeted: .constant(false)) { _ in
-                guard let draggedId = dragCoordinator.draggedItemId
-                else {
-                    return false
-                }
-
-                if tvm.selectedIDs.contains(draggedId), tvm.selectedIDs.count > 1 {
-                    tvm.moveItems(ids: tvm.selectedIDs, toIndex: tvm.items.count)
-                } else {
-                    tvm.moveItems(ids: [draggedId], toIndex: tvm.items.count)
-                }
-                dragCoordinator.dragCancelled()
-                return true
-            }
     }
 
     @ViewBuilder

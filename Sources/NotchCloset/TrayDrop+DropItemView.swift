@@ -125,6 +125,12 @@ struct DropItemView: View {
                 } label: {
                     Label(NSLocalizedString("Copy Text", comment: ""), systemImage: "doc.on.doc")
                 }
+                Divider()
+                Button(role: .destructive) {
+                    tvm.delete(item.id)
+                } label: {
+                    Label(NSLocalizedString("Remove from List", comment: ""), systemImage: "minus.circle")
+                }
             } else if item.isWebURL {
                 Button {
                     _ = item.accessSource { NSWorkspace.shared.open($0) }
@@ -136,6 +142,12 @@ struct DropItemView: View {
                     NSPasteboard.general.setString(item.sourceURL.absoluteString, forType: .string)
                 } label: {
                     Label(NSLocalizedString("Copy Link", comment: ""), systemImage: "link")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    tvm.delete(item.id)
+                } label: {
+                    Label(NSLocalizedString("Remove from List", comment: ""), systemImage: "minus.circle")
                 }
             } else {
                 Button {
@@ -155,6 +167,24 @@ struct DropItemView: View {
                     tvm.trashFiles(ids: [item.id])
                 } label: {
                     Label(NSLocalizedString("Move to Trash", comment: ""), systemImage: "trash")
+                }
+                Button(role: .destructive) {
+                    tvm.delete(item.id)
+                } label: {
+                    Label(NSLocalizedString("Remove from List", comment: ""), systemImage: "minus.circle")
+                }
+            }
+
+            ForEach(Array(PluginManager.shared.enabledPlugins), id: \.id) { plugin in
+                Section(plugin.name) {
+                    let items = plugin.contextMenuItems(for: item)
+                    ForEach(items, id: \.title) { menuItem in
+                        Button {
+                            menuItem.action()
+                        } label: {
+                            Label(menuItem.title, systemImage: menuItem.icon)
+                        }
+                    }
                 }
             }
         }
