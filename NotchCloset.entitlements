@@ -10,5 +10,7 @@
 	<integer>1</integer>
 	<key>com.apple.security.hardened-process.platform-restrictions</key>
 	<integer>2</integer>
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
 </dict>
 </plist>

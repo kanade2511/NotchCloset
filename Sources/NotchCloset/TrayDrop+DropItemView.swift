@@ -105,7 +105,7 @@ struct DropItemView: View {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
                 } else {
-                    NSWorkspace.shared.open(item.sourceURL)
+                    _ = item.accessSource { NSWorkspace.shared.open($0) }
                 }
             }
         }

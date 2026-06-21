@@ -20,6 +20,9 @@ final class QuickLookHelper: NSObject, QLPreviewPanelDataSource, QLPreviewPanelD
         guard index < ids.count,
               let item = tvm.items.first(where: { $0.id == ids[index] })
         else { return nil }
+        if let url = item.accessSource({ $0 as NSURL }) {
+            return url
+        }
         return item.sourceURL as NSURL
     }
 

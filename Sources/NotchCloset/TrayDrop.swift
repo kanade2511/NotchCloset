@@ -235,12 +235,14 @@ class TrayDrop: ObservableObject {
     }
 
     func trashFiles(ids: Set<DropItem.ID>) {
-        let fileURLs = ids.compactMap { id -> URL? in
+        var fileURLs: [URL] = []
+        for id in ids {
             guard let item = items.first(where: { $0.id == id }),
-                  !item.isText, !item.isWebURL,
-                  FileManager.default.fileExists(atPath: item.sourceURL.path)
-            else { return nil }
-            return item.sourceURL
+                  !item.isText, !item.isWebURL
+            else { continue }
+            if let url = item.accessSource({ $0 }), FileManager.default.fileExists(atPath: url.path) {
+                fileURLs.append(url)
+            }
         }
         if !fileURLs.isEmpty {
             NSWorkspace.shared.recycle(fileURLs) { _, _ in }

@@ -19,6 +19,7 @@ extension TrayDrop {
         let size: Int
         let sourceURL: URL
         let textContent: String?
+        let bookmarkData: Data?
 
         let addedDate: Date
         var workspacePreviewImageData: Data
@@ -42,10 +43,16 @@ extension TrayDrop {
             if url.scheme == "http" || url.scheme == "https" {
                 fileName = url.host ?? url.absoluteString
                 size = 0
+                bookmarkData = nil
                 workspacePreviewImageData = Self.globeIcon().pngRepresentation
             } else {
                 fileName = url.lastPathComponent
                 size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                bookmarkData = try? url.bookmarkData(
+                    options: [],
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
                 workspacePreviewImageData = url.snapshotPreview().pngRepresentation
             }
         }
@@ -59,6 +66,7 @@ extension TrayDrop {
             size = text.utf8.count
             sourceURL = URL(string: "opaque://text/\(id.uuidString)")!
             addedDate = Date()
+            bookmarkData = nil
             workspacePreviewImageData = Self.textQuoteIcon().pngRepresentation
             textContent = text
         }
@@ -84,6 +92,18 @@ extension TrayDrop.DropItem {
 
     var shouldClean: Bool {
         if isText || isWebURL { return false }
+        if let data = bookmarkData {
+            var stale = false
+            guard let url = try? URL(
+                resolvingBookmarkData: data,
+                options: [],
+                relativeTo: nil,
+                bookmarkDataIsStale: &stale
+            ), !stale,
+            FileManager.default.fileExists(atPath: url.path)
+            else { return true }
+            return false
+        }
         return !FileManager.default.fileExists(atPath: sourceURL.path)
     }
 }
