@@ -32,7 +32,7 @@ extension TrayDrop {
             textContent != nil
         }
 
-        init(url: URL) throws {
+        init(url: URL, bookmarkData: Data? = nil) throws {
             assert(!Thread.isMainThread)
 
             id = UUID()
@@ -43,16 +43,12 @@ extension TrayDrop {
             if url.scheme == "http" || url.scheme == "https" {
                 fileName = url.host ?? url.absoluteString
                 size = 0
-                bookmarkData = nil
+                self.bookmarkData = nil
                 workspacePreviewImageData = Self.globeIcon().pngRepresentation
             } else {
                 fileName = url.lastPathComponent
                 size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
-                bookmarkData = try? url.bookmarkData(
-                    options: [],
-                    includingResourceValuesForKeys: nil,
-                    relativeTo: nil
-                )
+                self.bookmarkData = bookmarkData
                 workspacePreviewImageData = url.snapshotPreview().pngRepresentation
             }
         }
@@ -99,10 +95,10 @@ extension TrayDrop.DropItem {
                 options: [],
                 relativeTo: nil,
                 bookmarkDataIsStale: &stale
-            ), !stale,
-            FileManager.default.fileExists(atPath: url.path)
-            else { return true }
-            return false
+            ), !stale else { return true }
+            let started = url.startAccessingSecurityScopedResource()
+            defer { if started { url.stopAccessingSecurityScopedResource() } }
+            return !FileManager.default.fileExists(atPath: url.path)
         }
         return !FileManager.default.fileExists(atPath: sourceURL.path)
     }

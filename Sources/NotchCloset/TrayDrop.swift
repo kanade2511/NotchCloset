@@ -116,16 +116,22 @@ class TrayDrop: ObservableObject {
             let isFileProvider = types.contains(where: { $0 == "public.file-url" || $0 == "public.data" || $0 == "public.directory" || $0 == "public.folder" })
 
             if hasURLType || isFileProvider, let url = provider.resolveAnyURL() {
+                let started = url.startAccessingSecurityScopedResource()
+                let bookmark = started ? try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) : nil
+                if started { url.stopAccessingSecurityScopedResource() }
                 do {
-                    resolvedItems.append(try DropItem(url: url))
+                    resolvedItems.append(try DropItem(url: url, bookmarkData: bookmark))
                 } catch {
                     allResolved = false
                 }
             } else if isTextProvider || hasURLType, let text = provider.resolveText() {
                 resolvedItems.append(DropItem(text: text))
             } else if let url = provider.resolveAnyURL() {
+                let started = url.startAccessingSecurityScopedResource()
+                let bookmark = started ? try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) : nil
+                if started { url.stopAccessingSecurityScopedResource() }
                 do {
-                    resolvedItems.append(try DropItem(url: url))
+                    resolvedItems.append(try DropItem(url: url, bookmarkData: bookmark))
                 } catch {
                     allResolved = false
                 }
