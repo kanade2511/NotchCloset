@@ -15,7 +15,7 @@ protocol PersistProvider {
 
 private let valueEncoder = JSONEncoder()
 private let valueDecoder = JSONDecoder()
-private let configDir = documentsDirectory
+private let configDir = configDirectory
     .appendingPathComponent("Config")
 
 class FileStorage: PersistProvider {

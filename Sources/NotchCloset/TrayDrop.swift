@@ -111,10 +111,17 @@ class TrayDrop: ObservableObject {
         for provider in providers {
             let types = provider.registeredTypeIdentifiers
 
+            let hasURLType = types.contains { $0 == "public.url" }
             let isTextProvider = types.contains(where: { $0.hasPrefix("public.utf") || $0.hasPrefix("public.rtf") || $0 == "public.plain-text" || $0 == "public.text" })
             let isFileProvider = types.contains(where: { $0 == "public.file-url" || $0 == "public.data" || $0 == "public.directory" || $0 == "public.folder" })
 
-            if isTextProvider, !isFileProvider, let text = provider.resolveText() {
+            if hasURLType || isFileProvider, let url = provider.resolveAnyURL() {
+                do {
+                    resolvedItems.append(try DropItem(url: url))
+                } catch {
+                    allResolved = false
+                }
+            } else if isTextProvider || hasURLType, let text = provider.resolveText() {
                 resolvedItems.append(DropItem(text: text))
             } else if let url = provider.resolveAnyURL() {
                 do {
@@ -122,8 +129,6 @@ class TrayDrop: ObservableObject {
                 } catch {
                     allResolved = false
                 }
-            } else if let text = provider.resolveText() {
-                resolvedItems.append(DropItem(text: text))
             } else {
                 allResolved = false
             }
@@ -227,6 +232,24 @@ class TrayDrop: ObservableObject {
         }
         selectedIDs = []
         lastSelectedID = nil
+    }
+
+    func trashFiles(ids: Set<DropItem.ID>) {
+        let fileURLs = ids.compactMap { id -> URL? in
+            guard let item = items.first(where: { $0.id == id }),
+                  !item.isText, !item.isWebURL,
+                  FileManager.default.fileExists(atPath: item.sourceURL.path)
+            else { return nil }
+            return item.sourceURL
+        }
+        if !fileURLs.isEmpty {
+            NSWorkspace.shared.recycle(fileURLs) { _, _ in }
+        }
+        for id in ids {
+            if let item = items.first(where: { $0.id == id }) {
+                delete(item: item)
+            }
+        }
     }
 
     func removeAll() {

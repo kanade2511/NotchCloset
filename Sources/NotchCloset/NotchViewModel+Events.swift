@@ -59,6 +59,24 @@ extension NotchViewModel {
             }
             .store(in: &cancellables)
 
+        events.backspaceKeyDown
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                let tvm = TrayDrop.shared
+                guard !tvm.selectedIDs.isEmpty else { return }
+                tvm.deleteSelected()
+            }
+            .store(in: &cancellables)
+
+        events.commandBackspaceKeyDown
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                let tvm = TrayDrop.shared
+                guard !tvm.selectedIDs.isEmpty else { return }
+                tvm.trashFiles(ids: tvm.selectedIDs)
+            }
+            .store(in: &cancellables)
+
         events.optionKeyPress
             .receive(on: DispatchQueue.main)
             .sink { [weak self] input in
