@@ -41,8 +41,6 @@ extension NotchViewModel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self, status == .closed else { return }
-                let mouseY = NSEvent.mouseLocation.y
-                guard mouseY > screenRect.maxY - 250 else { return }
                 let work = DispatchWorkItem { [weak self] in
                     guard let self else { return }
                     notchOpen(.drag)

@@ -19,6 +19,7 @@ class AirDropPlugin: ObservableObject, NotchPlugin {
 
     func onDrop(providers: [NSItemProvider], itemIDs: [TrayDrop.DropItem.ID]) {
         var urls: [URL] = []
+
         for id in itemIDs {
             if let item = TrayDrop.shared.items.first(where: { $0.id == id }),
                !item.isText, !item.isWebURL {
@@ -27,10 +28,25 @@ class AirDropPlugin: ObservableObject, NotchPlugin {
                 }
             }
         }
+
+        if urls.isEmpty, !providers.isEmpty {
+            DispatchQueue.global().async {
+                let resolved = providers.compactMap { $0.resolveAnyURL() }
+                DispatchQueue.main.async {
+                    guard !resolved.isEmpty else { return }
+                    Share(files: resolved, serviceName: .sendViaAirDrop).begin()
+                    if let delegate = NSApp.delegate as? AppDelegate,
+                       let vm = delegate.mainWindowController?.vm {
+                        vm.notchClose()
+                    }
+                }
+            }
+            return
+        }
+
         guard !urls.isEmpty else { return }
 
-        let share = Share(files: urls, serviceName: .sendViaAirDrop)
-        share.begin()
+        Share(files: urls, serviceName: .sendViaAirDrop).begin()
 
         if let delegate = NSApp.delegate as? AppDelegate,
            let vm = delegate.mainWindowController?.vm {
