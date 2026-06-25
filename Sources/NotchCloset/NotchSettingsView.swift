@@ -66,6 +66,21 @@ struct NotchSettingsView: View {
                         .padding(.leading, 16)
                     }
                 }
+
+                Divider()
+
+                HStack {
+                    Spacer()
+                    Button(role: .destructive) {
+                        NSApp.terminate(nil)
+                    } label: {
+                        Label("Quit NotchCloset", systemImage: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .controlSize(.small)
+                    Spacer()
+                }
             }
             .padding()
         }

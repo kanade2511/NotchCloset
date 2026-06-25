@@ -14,7 +14,7 @@ struct NotchHeaderView: View {
             Button {
                 vm.openSettings()
             } label: {
-                Image(systemName: "gearshape")
+                Image(systemName: "gear")
             }
             .buttonStyle(.borderless)
         }
