@@ -76,9 +76,6 @@ class NotchViewModel: NSObject, ObservableObject {
     @PublishedPersist(key: "hapticFeedback", defaultValue: true)
     var hapticFeedback: Bool
 
-    @PublishedPersist(key: "selectedLanguage", defaultValue: .system)
-    var selectedLanguage: Language
-
     let hapticSender = PassthroughSubject<Void, Never>()
     var closeWorkItem: DispatchWorkItem?
     var dragOpenWorkItem: DispatchWorkItem?

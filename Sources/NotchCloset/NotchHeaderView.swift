@@ -10,8 +10,6 @@ struct NotchHeaderView: View {
 
     var body: some View {
         HStack {
-            Text("NotchCloset")
-                .font(.system(.headline, design: .rounded))
             Spacer()
             Button {
                 vm.openSettings()
