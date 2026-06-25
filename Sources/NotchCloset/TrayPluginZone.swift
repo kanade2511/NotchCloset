@@ -6,9 +6,21 @@ struct TrayPluginZone: View {
     @StateObject var tvm = TrayDrop.shared
 
     var body: some View {
-        ForEach(Array(pluginManager.enabledPlugins), id: \.id) { plugin in
-            PluginDropTarget(plugin: plugin)
+        HStack(spacing: 8) {
+            if pluginManager.isEnabled(pluginId: "airdrop") {
+                PluginDropTarget(plugin: airDropPlugin)
+            }
+            if pluginManager.isEnabled(pluginId: "ocr") {
+                PluginDropTarget(plugin: ocrPlugin)
+            }
         }
+    }
+
+    private var airDropPlugin: AirDropPlugin {
+        pluginManager.plugin(for: "airdrop") as! AirDropPlugin
+    }
+    private var ocrPlugin: OCRPlugin {
+        pluginManager.plugin(for: "ocr") as! OCRPlugin
     }
 }
 
@@ -27,26 +39,23 @@ struct PluginDropTarget: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(plugin.tint.opacity(isHovered ? 0.3 : 0.06))
-                .overlay {
-                    Image(systemName: plugin.icon)
-                        .font(.title2)
-                        .foregroundStyle(.white.opacity(isHovered ? 1 : 0.35))
-                }
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: 64)
-
-            Text(plugin.name)
-                .multilineTextAlignment(.center)
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.white.opacity(isHovered ? 1 : 0.35))
-                .frame(maxWidth: 64)
+        VStack(spacing: 6) {
+            ActionTile(
+                icon: plugin.icon,
+                label: plugin.name,
+                tint: plugin.tint,
+                isHovered: isHovered
+            )
         }
-        .contentShape(Rectangle())
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.white.opacity(0.05))
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6]))
+                .foregroundStyle(.white.opacity(0.12))
+        }
         .scaleEffect(isHovered ? 1.05 : 1.0)
-        .padding(.leading, 8)
         .onDrop(of: supportedDropTypes, isTargeted: $isHovered) { providers in
             plugin.onDrop(providers: providers, itemIDs: draggedIDs)
             dragCoordinator.dragCancelled()

@@ -12,6 +12,7 @@ struct TrayView: View {
     @StateObject var vm: NotchViewModel
     @ObservedObject var tvm = TrayDrop.shared
     @ObservedObject var dragCoordinator = ItemDragCoordinator.shared
+    @ObservedObject var pluginManager = PluginManager.shared
 
     @State private var targeting = false
     @State private var trashHover = false
@@ -120,14 +121,7 @@ struct TrayView: View {
     }
 
     var panel: some View {
-        RoundedRectangle(cornerRadius: vm.cornerRadius)
-            .strokeBorder(style: StrokeStyle(lineWidth: 4, dash: [10]))
-            .foregroundStyle(.white.opacity(0.1))
-            .background(loading)
-            .overlay {
-                content
-                    .padding()
-            }
+        content
             .animation(vm.contentAnimation, value: tvm.items)
             .animation(vm.contentAnimation, value: tvm.isLoading)
     }
@@ -149,16 +143,24 @@ struct TrayView: View {
     }
 
     var content: some View {
-        Group {
-            if tvm.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "tray.and.arrow.down.fill")
-                    Text(text)
-                        .multilineTextAlignment(.center)
-                        .font(.system(.headline, design: .rounded))
-                }
-            } else {
-                HStack(spacing: 0) {
+        HStack(spacing: 0) {
+            if !pluginManager.enabledPlugins.isEmpty {
+                TrayPluginZone()
+                    .frame(maxHeight: .infinity)
+
+                Spacer().frame(width: 8)
+            }
+
+            HStack(spacing: 0) {
+                if tvm.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "tray.and.arrow.down.fill")
+                        Text(text)
+                            .multilineTextAlignment(.center)
+                            .font(.system(.headline, design: .rounded))
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
                     ScrollView(.horizontal) {
                         HStack(spacing: vm.spacing) {
                                 ForEach(Array(tvm.items.enumerated()), id: \.element.id) { idx, item in
@@ -178,7 +180,6 @@ struct TrayView: View {
                                         )
                                     })
                                 }
-
                         }
                         .padding(vm.spacing)
                     }
@@ -207,16 +208,24 @@ struct TrayView: View {
                                 .position(x: rect.midX, y: rect.midY)
                         }
                     }
-
-                    TrayPluginZone()
-
-                    if tvm.selectedIDs.count > 1 {
-                        deleteSelectedButton
-                    } else if dragCoordinator.isDragging {
-                        trashArea
-                            .transition(.opacity.animation(vm.trashAnimation))
-                    }
                 }
+
+                if tvm.selectedIDs.count > 1 {
+                    deleteSelectedButton
+                } else if dragCoordinator.isDragging {
+                    trashArea
+                        .transition(.opacity.animation(vm.trashAnimation))
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .frame(maxHeight: .infinity)
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(.white.opacity(0.05))
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6]))
+                    .foregroundStyle(.white.opacity(0.12))
             }
         }
     }
@@ -226,22 +235,11 @@ struct TrayView: View {
         Button {
             tvm.deleteSelected()
         } label: {
-            VStack(spacing: 4) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.red.opacity(0.06))
-                    .overlay {
-                        Image(systemName: "trash")
-                            .font(.title2)
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                    .frame(width: 44, height: 44)
-
-                Text(String(format: NSLocalizedString("Delete %d", comment: ""), tvm.selectedIDs.count))
-                    .multilineTextAlignment(.center)
-                    .font(.system(.footnote, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
-                    .frame(maxWidth: 64)
-            }
+            ActionTile(
+                icon: "trash",
+                label: String(format: NSLocalizedString("Delete %d", comment: ""), tvm.selectedIDs.count),
+                tint: .red
+            )
         }
         .buttonStyle(.borderless)
         .padding(.leading, vm.spacing)
@@ -254,24 +252,12 @@ struct TrayView: View {
 
     @ViewBuilder
     private var trashArea: some View {
-        VStack(spacing: 4) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.red.opacity(trashHover ? 0.3 : 0.06))
-                .overlay {
-                    Image(systemName: "trash")
-                        .font(.title2)
-                        .foregroundStyle(.white.opacity(trashHover ? 1 : 0.35))
-                }
-                .aspectRatio(1, contentMode: .fit)
-                .frame(maxWidth: 64)
-
-            Text("Delete")
-                .multilineTextAlignment(.center)
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.white.opacity(trashHover ? 1 : 0.35))
-                .frame(maxWidth: 64)
-        }
-        .contentShape(Rectangle())
+        ActionTile(
+            icon: "trash",
+            label: "Delete",
+            tint: .red,
+            isHovered: trashHover
+        )
         .scaleEffect(trashHover ? 1.05 : 1.0)
         .padding(.leading, vm.spacing)
         .onDrop(of: supportedDropTypes, isTargeted: $trashHover) { _ in

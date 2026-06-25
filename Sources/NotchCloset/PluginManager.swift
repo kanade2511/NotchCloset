@@ -25,6 +25,7 @@ class PluginManager: ObservableObject {
 
     private func registerBuiltInPlugins() {
         register(AirDropPlugin())
+        register(OCRPlugin())
     }
 
     func contextMenuItems(for item: TrayDrop.DropItem) -> [PluginMenuItem] {
@@ -36,6 +37,14 @@ class PluginManager: ObservableObject {
         if let index = plugins.firstIndex(where: { $0.id == pluginId }) {
             plugins[index].isEnabled = enabled
         }
+    }
+
+    func isEnabled(pluginId: String) -> Bool {
+        enabledStates[pluginId] ?? true
+    }
+
+    func plugin(for id: String) -> (any NotchPlugin)? {
+        plugins.first { $0.id == id }
     }
 
     func isEnabledBinding(for pluginId: String) -> Binding<Bool> {
