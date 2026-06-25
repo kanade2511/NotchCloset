@@ -7,51 +7,68 @@ import SwiftUI
 
 struct NotchSettingsView: View {
     @StateObject var vm: NotchViewModel
-    @State private var selectedLanguage: Language = .system
-    @State private var selectedTab = 0
+    @ObservedObject var tvm = TrayDrop.shared
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("", selection: $selectedTab) {
-                Text("General").tag(0)
-                Text("Plugins").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding()
+        TabView {
+            generalSettings
+                .tabItem {
+                    Label("General", systemImage: "gearshape")
+                }
 
-            if selectedTab == 0 {
-                generalSettings
-            } else {
-                PluginStoreView()
+            PluginStoreView()
+                .tabItem {
+                    Label("Plugins", systemImage: "puzzlepiece.extension")
+                }
+
+            if PluginManager.shared.isEnabled(pluginId: "ocr") {
+                OCRSettingsView()
+                    .tabItem {
+                        Label("OCR", systemImage: "text.viewfinder")
+                    }
             }
         }
-        .frame(width: 360)
+        .tabViewStyle(.automatic)
+        .frame(width: 380, height: 350)
     }
 
     private var generalSettings: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Language")
-                    .frame(width: 80, alignment: .leading)
-                Picker("", selection: $selectedLanguage) {
-                    ForEach(Language.allCases) { language in
-                        Text(language.localized).tag(language)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Toggle("Haptic Feedback", isOn: $vm.hapticFeedback)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Keep Files")
+                        .font(.system(.headline, design: .rounded))
+
+                    Picker("", selection: $tvm.selectedFileStorageTime) {
+                        ForEach(TrayDrop.FileStorageTime.allCases) { time in
+                            Text(time.localized).tag(time)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    if tvm.selectedFileStorageTime == .custom {
+                        HStack(spacing: 8) {
+                            TextField("", value: $tvm.customStorageTime, format: .number)
+                                .frame(width: 60)
+                                .textFieldStyle(.roundedBorder)
+                            Picker("", selection: $tvm.customStorageTimeUnit) {
+                                ForEach(TrayDrop.CustomStorageTimeUnit.allCases) { unit in
+                                    Text(unit.localized).tag(unit)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 100)
+                        }
+                        .padding(.leading, 16)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 180)
-                .onChange(of: selectedLanguage) { _, lang in
-                    vm.selectedLanguage = lang
-                    lang.apply()
-                }
             }
-
-            Toggle("Haptic Feedback", isOn: $vm.hapticFeedback)
+            .padding()
         }
-        .padding()
         .font(.system(.body, design: .rounded))
-        .onAppear {
-            selectedLanguage = vm.selectedLanguage
-        }
     }
 }

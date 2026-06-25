@@ -101,7 +101,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let vm = mainWindowController?.vm ?? NotchViewModel()
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 160),
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 350),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
