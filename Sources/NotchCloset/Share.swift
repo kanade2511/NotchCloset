@@ -8,7 +8,7 @@
 
 import Cocoa
 
-class Share: NSObject, NSSharingServiceDelegate {
+class Share: NSObject {
     let files: [URL]
     let serviceName: NSSharingService.Name?
 
@@ -40,7 +40,6 @@ class Share: NSObject, NSSharingServiceDelegate {
                 ])
             }
 
-            service.delegate = self
             service.perform(withItems: files)
         } else {
             // 弹出分享面板

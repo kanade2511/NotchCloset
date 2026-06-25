@@ -52,15 +52,15 @@ struct DropItemView: View {
         .contentShape(Rectangle())
         .opacity(visible ? 1 : 0)
         .offset(y: visible ? 0 : -16)
-        .animation(vm.insertAnimation, value: visible)
+        .animation(NotchDesignTokens.insertAnimation, value: visible)
         .transition(.asymmetric(
             insertion: .identity,
             removal: .opacity
-                .animation(vm.removeAnimation.delay(Double(total - 1 - index) * 0.04))
+                .animation(NotchDesignTokens.removeAnimation.delay(Double(total - 1 - index) * 0.04))
         ))
         .onHover { hover = $0 }
-        .animation(vm.hoverAnimation, value: hover)
-        .animation(vm.hoverAnimation, value: dropTargeted)
+        .animation(NotchDesignTokens.hoverAnimation, value: hover)
+        .animation(NotchDesignTokens.hoverAnimation, value: dropTargeted)
         .overlay {
             DragSourceOverlay(
                 item: item,

@@ -7,27 +7,10 @@
 
 import AppKit
 
-let productPage = URL(string: "https://github.com/kanade2511/NotchCloset")!
-let sponsorPage = URL(string: "https://github.com/kanade2511")!
-
 let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.kanade2511.NotchCloset"
-let appVersion = "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
 
 let configDirectory = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent(".config/notchcloset")
-
-let oldDocumentsDirectory: URL = {
-    let availableDirectories = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-    return availableDirectories[0].appendingPathComponent("NotchCloset")
-}()
-
-var isDirectory: ObjCBool = false
-if FileManager.default.fileExists(atPath: oldDocumentsDirectory.path, isDirectory: &isDirectory), isDirectory.boolValue {
-    let contents = (try? FileManager.default.contentsOfDirectory(atPath: oldDocumentsDirectory.path)) ?? []
-    if contents.isEmpty {
-        try? FileManager.default.removeItem(at: oldDocumentsDirectory)
-    }
-}
 
 let temporaryDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
     .appendingPathComponent(bundleIdentifier)

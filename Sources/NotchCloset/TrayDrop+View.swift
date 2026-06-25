@@ -122,13 +122,8 @@ struct TrayView: View {
 
     var panel: some View {
         content
-            .animation(vm.contentAnimation, value: tvm.items)
-            .animation(vm.contentAnimation, value: tvm.isLoading)
-    }
-
-    var loading: some View {
-        RoundedRectangle(cornerRadius: vm.cornerRadius)
-            .foregroundStyle(.white.opacity(0.1))
+            .animation(NotchDesignTokens.contentAnimation, value: tvm.items)
+            .animation(NotchDesignTokens.contentAnimation, value: tvm.isLoading)
     }
 
     var text: String {
@@ -162,7 +157,7 @@ struct TrayView: View {
                     .frame(maxWidth: .infinity)
                 } else {
                     ScrollView(.horizontal) {
-                        HStack(spacing: vm.spacing) {
+                        HStack(spacing: NotchDesignTokens.spacing) {
                                 ForEach(Array(tvm.items.enumerated()), id: \.element.id) { idx, item in
                                     DropItemView(
                                         item: item,
@@ -181,10 +176,10 @@ struct TrayView: View {
                                     })
                                 }
                         }
-                        .padding(vm.spacing)
+                        .padding(NotchDesignTokens.spacing)
                     }
                     .coordinateSpace(name: "content")
-                    .padding(-vm.spacing)
+                    .padding(-NotchDesignTokens.spacing)
                     .scrollIndicators(.never)
                     .background(GeometryReader { geo in
                         Color.clear.onAppear {
@@ -214,7 +209,7 @@ struct TrayView: View {
                     deleteSelectedButton
                 } else if dragCoordinator.isDragging {
                     trashArea
-                        .transition(.opacity.animation(vm.trashAnimation))
+                        .transition(.opacity.animation(NotchDesignTokens.trashAnimation))
                 }
             }
             .padding(.horizontal, 8)
@@ -242,7 +237,7 @@ struct TrayView: View {
             )
         }
         .buttonStyle(.borderless)
-        .padding(.leading, vm.spacing)
+        .padding(.leading, NotchDesignTokens.spacing)
         .onDrop(of: supportedDropTypes, isTargeted: .constant(false)) { _ in
             tvm.deleteSelected()
             dragCoordinator.dragCancelled()
@@ -259,7 +254,7 @@ struct TrayView: View {
             isHovered: trashHover
         )
         .scaleEffect(trashHover ? 1.05 : 1.0)
-        .padding(.leading, vm.spacing)
+        .padding(.leading, NotchDesignTokens.spacing)
         .onDrop(of: supportedDropTypes, isTargeted: $trashHover) { _ in
             if let id = dragCoordinator.draggedItemId {
                 if tvm.selectedIDs.contains(id), tvm.selectedIDs.count > 1 {
@@ -271,7 +266,7 @@ struct TrayView: View {
             }
             return true
         }
-        .animation(vm.hoverAnimation, value: trashHover)
+        .animation(NotchDesignTokens.hoverAnimation, value: trashHover)
     }
 
     private func selectionRect(from start: CGPoint, to end: CGPoint) -> CGRect {

@@ -25,17 +25,6 @@ class NotchViewModel: NSObject, ObservableObject {
         destroy()
     }
 
-    let openAnimation: Animation = NotchDesignTokens.openAnimation
-    let closeAnimation: Animation = NotchDesignTokens.closeAnimation
-    let contentAnimation: Animation = NotchDesignTokens.contentAnimation
-    let insertAnimation: Animation = NotchDesignTokens.insertAnimation
-    let removeAnimation: Animation = NotchDesignTokens.removeAnimation
-    let hoverAnimation: Animation = NotchDesignTokens.hoverAnimation
-    let trashAnimation: Animation = NotchDesignTokens.trashAnimation
-    let popAnimation: Animation = NotchDesignTokens.popAnimation
-    let notchOpenedSize: CGSize = NotchDesignTokens.notchOpenedSize
-    let dropDetectorRange: CGFloat = NotchDesignTokens.dropDetectorRange
-
     enum Status: String, Codable, Hashable, Equatable {
         case closed
         case opened
@@ -49,28 +38,20 @@ class NotchViewModel: NSObject, ObservableObject {
         case unknown
     }
 
-    enum ContentType: Int, Codable, Hashable, Equatable {
-        case normal
-    }
-
     var notchOpenedRect: CGRect {
         .init(
-            x: screenRect.origin.x + (screenRect.width - notchOpenedSize.width) / 2,
-            y: screenRect.origin.y + screenRect.height - notchOpenedSize.height,
-            width: notchOpenedSize.width,
-            height: notchOpenedSize.height
+            x: screenRect.origin.x + (screenRect.width - NotchDesignTokens.notchOpenedSize.width) / 2,
+            y: screenRect.origin.y + screenRect.height - NotchDesignTokens.notchOpenedSize.height,
+            width: NotchDesignTokens.notchOpenedSize.width,
+            height: NotchDesignTokens.notchOpenedSize.height
         )
     }
 
     @Published private(set) var status: Status = .closed
     @Published var openReason: OpenReason = .unknown
-    @Published var contentType: ContentType = .normal
 
-    @Published var spacing: CGFloat = 16
-    @Published var cornerRadius: CGFloat = 16
     @Published var deviceNotchRect: CGRect = .zero
     @Published var screenRect: CGRect = .zero
-    @Published var optionKeyPressed: Bool = false
     @Published var notchVisible: Bool = true
 
     @PublishedPersist(key: "hapticFeedback", defaultValue: true)
@@ -86,8 +67,7 @@ class NotchViewModel: NSObject, ObservableObject {
         dragOpenWorkItem?.cancel()
         dragOpenWorkItem = nil
         openReason = reason
-        contentType = .normal
-        withAnimation(openAnimation) { status = .opened }
+        withAnimation(NotchDesignTokens.openAnimation) { status = .opened }
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -97,13 +77,12 @@ class NotchViewModel: NSObject, ObservableObject {
         dragOpenWorkItem?.cancel()
         dragOpenWorkItem = nil
         openReason = .unknown
-        withAnimation(closeAnimation) { status = .closed }
-        contentType = .normal
+        withAnimation(NotchDesignTokens.closeAnimation) { status = .closed }
     }
 
     func notchPop() {
         openReason = .unknown
-        withAnimation(popAnimation) { status = .popping }
+        withAnimation(NotchDesignTokens.popAnimation) { status = .popping }
     }
 
     func openSettings() {

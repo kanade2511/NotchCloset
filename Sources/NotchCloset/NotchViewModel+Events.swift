@@ -75,14 +75,6 @@ extension NotchViewModel {
             }
             .store(in: &cancellables)
 
-        events.optionKeyPress
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] input in
-                guard let self else { return }
-                optionKeyPressed = input
-            }
-            .store(in: &cancellables)
-
         events.mouseLocation
             .receive(on: DispatchQueue.main)
             .sink { [weak self] mouseLocation in
@@ -115,7 +107,7 @@ extension NotchViewModel {
             .filter { $0 != .closed }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                withAnimation(self?.openAnimation) { self?.notchVisible = true }
+                withAnimation(NotchDesignTokens.openAnimation) { self?.notchVisible = true }
             }
             .store(in: &cancellables)
 
@@ -144,7 +136,7 @@ extension NotchViewModel {
             .filter { $0 == .closed }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                withAnimation(self?.closeAnimation) {
+                withAnimation(NotchDesignTokens.closeAnimation) {
                     self?.notchVisible = false
                 }
             }

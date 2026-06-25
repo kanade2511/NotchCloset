@@ -24,7 +24,7 @@ struct NotchView: View {
             if ans.height < 0 { ans.height = 0 }
             return ans
         case .opened:
-            return vm.notchOpenedSize
+            return NotchDesignTokens.notchOpenedSize
         case .popping:
             return .init(
                 width: vm.deviceNotchRect.width,
@@ -49,13 +49,13 @@ struct NotchView: View {
                 .opacity(vm.notchVisible ? 1 : 0.3)
             Group {
                 if vm.status == .opened {
-                    VStack(spacing: vm.spacing) {
+                    VStack(spacing: NotchDesignTokens.spacing) {
                         NotchHeaderView(vm: vm)
                         TrayView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .padding(vm.spacing)
-                    .frame(maxWidth: vm.notchOpenedSize.width, maxHeight: vm.notchOpenedSize.height)
+                    .padding(NotchDesignTokens.spacing)
+                    .frame(maxWidth: NotchDesignTokens.notchOpenedSize.width, maxHeight: NotchDesignTokens.notchOpenedSize.height)
                     .zIndex(1)
                     .transition(.asymmetric(
                         insertion: .offset(y: -8).combined(with: .opacity),
@@ -103,14 +103,14 @@ struct NotchView: View {
                         .clipShape(.rect(topTrailingRadius: notchCornerRadius))
                         .foregroundStyle(.white)
                         .frame(
-                            width: notchCornerRadius + vm.spacing,
-                            height: notchCornerRadius + vm.spacing
+                            width: notchCornerRadius + NotchDesignTokens.spacing,
+                            height: notchCornerRadius + NotchDesignTokens.spacing
                         )
                         .blendMode(.destinationOut)
                 }
                 .compositingGroup()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .offset(x: -notchCornerRadius - vm.spacing + 0.5, y: -0.5)
+                .offset(x: -notchCornerRadius - NotchDesignTokens.spacing + 0.5, y: -0.5)
             }
             .overlay {
                 ZStack(alignment: .topLeading) {
@@ -121,14 +121,14 @@ struct NotchView: View {
                         .clipShape(.rect(topLeadingRadius: notchCornerRadius))
                         .foregroundStyle(.white)
                         .frame(
-                            width: notchCornerRadius + vm.spacing,
-                            height: notchCornerRadius + vm.spacing
+                            width: notchCornerRadius + NotchDesignTokens.spacing,
+                            height: notchCornerRadius + NotchDesignTokens.spacing
                         )
                         .blendMode(.destinationOut)
                 }
                 .compositingGroup()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: notchCornerRadius + vm.spacing - 0.5, y: -0.5)
+                .offset(x: notchCornerRadius + NotchDesignTokens.spacing - 0.5, y: -0.5)
             }
     }
 
@@ -137,7 +137,7 @@ struct NotchView: View {
         RoundedRectangle(cornerRadius: notchCornerRadius)
             .foregroundStyle(Color.black.opacity(0.001)) // fuck you apple and 0.001 is the smallest we can have
             .contentShape(Rectangle())
-            .frame(width: notchSize.width + vm.dropDetectorRange, height: notchSize.height + vm.dropDetectorRange)
+            .frame(width: notchSize.width + NotchDesignTokens.dropDetectorRange, height: notchSize.height + NotchDesignTokens.dropDetectorRange)
             .onDrop(of: [.data, .text, .plainText, .utf8PlainText, .url], isTargeted: $dropTargeting) { _ in false }
             .onChange(of: dropTargeting) { _, isTargeted in
                 if isTargeted, vm.status == .closed {

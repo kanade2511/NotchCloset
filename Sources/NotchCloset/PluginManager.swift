@@ -28,10 +28,6 @@ class PluginManager: ObservableObject {
         register(OCRPlugin())
     }
 
-    func contextMenuItems(for item: TrayDrop.DropItem) -> [PluginMenuItem] {
-        enabledPlugins.flatMap { $0.contextMenuItems(for: item) }
-    }
-
     func updateEnabledState(for pluginId: String, enabled: Bool) {
         enabledStates[pluginId] = enabled
         if let index = plugins.firstIndex(where: { $0.id == pluginId }) {

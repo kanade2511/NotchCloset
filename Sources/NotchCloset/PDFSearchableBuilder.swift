@@ -72,10 +72,9 @@ public enum PDFSearchableBuilder {
             guard pixelWidth > 0, pixelHeight > 0 else { continue }
 
             // Render the original page at 150 DPI.
-            let cgImage = try renderPage(page, pageBounds: pageBounds,
-                                         scale: scale,
-                                         pixelWidth: pixelWidth,
-                                         pixelHeight: pixelHeight)
+            let cgImage = try page.renderImage(scale: scale,
+                                               pixelWidth: pixelWidth,
+                                               pixelHeight: pixelHeight)
 
             // Re-encode as JPEG so CGPDFContext can embed it efficiently.
             let jpegData = try encodeJPEG(cgImage)
@@ -106,46 +105,6 @@ public enum PDFSearchableBuilder {
         }
 
         return outputURL
-    }
-}
-
-// MARK: - Page Rendering
-
-extension PDFSearchableBuilder {
-    /// Render a PDF page to a CGImage bitmap at the given DPI.
-    private static func renderPage(
-        _ page: PDFPage,
-        pageBounds: CGRect,
-        scale: CGFloat,
-        pixelWidth: Int,
-        pixelHeight: Int
-    ) throws -> CGImage {
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo.byteOrder32Little.rawValue
-            | CGImageAlphaInfo.premultipliedFirst.rawValue
-
-        guard let ctx = CGContext(
-            data: nil,
-            width: pixelWidth,
-            height: pixelHeight,
-            bitsPerComponent: 8,
-            bytesPerRow: pixelWidth * 4,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo
-        ) else {
-            throw BuilderError.pageRenderFailed
-        }
-
-        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
-
-        ctx.scaleBy(x: scale, y: scale)
-        page.draw(with: .mediaBox, to: ctx)
-
-        guard let image = ctx.makeImage() else {
-            throw BuilderError.pageRenderFailed
-        }
-        return image
     }
 }
 

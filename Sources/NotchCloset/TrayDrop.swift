@@ -260,9 +260,6 @@ class TrayDrop: ObservableObject {
         }
     }
 
-    func removeAll() {
-        items.forEach { delete(item: $0) }
-    }
 }
 
 extension TrayDrop {

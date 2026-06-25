@@ -79,10 +79,9 @@ public enum PDFOCREngine {
             guard pixelWidth > 0, pixelHeight > 0 else { continue }
 
             // Render the page to a bitmap image.
-            let image = try renderPage(page, pageBounds: pageBounds,
-                                       scale: scale,
-                                       pixelWidth: pixelWidth,
-                                       pixelHeight: pixelHeight)
+            let image = try page.renderImage(scale: scale,
+                                             pixelWidth: pixelWidth,
+                                             pixelHeight: pixelHeight)
 
             // Run Vision text recognition with the provided parameters.
             let lines = try await recognizeText(in: image,
@@ -96,47 +95,6 @@ public enum PDFOCREngine {
         }
 
         return result
-    }
-
-    // MARK: - Rendering
-
-    /// Render a PDF page into a CGImage at the given DPI scale.
-    private static func renderPage(
-        _ page: PDFPage,
-        pageBounds: CGRect,
-        scale: CGFloat,
-        pixelWidth: Int,
-        pixelHeight: Int
-    ) throws -> CGImage {
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo.byteOrder32Little.rawValue
-            | CGImageAlphaInfo.premultipliedFirst.rawValue
-
-        guard let ctx = CGContext(
-            data: nil,
-            width: pixelWidth,
-            height: pixelHeight,
-            bitsPerComponent: 8,
-            bytesPerRow: pixelWidth * 4,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo
-        ) else {
-            throw OCRError.recognitionFailed(reason: "Failed to create bitmap context for page rendering")
-        }
-
-        // White background.
-        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: pixelWidth, height: pixelHeight))
-
-        // Scale to the desired DPI and draw the page.
-        ctx.scaleBy(x: scale, y: scale)
-        page.draw(with: .mediaBox, to: ctx)
-
-        guard let image = ctx.makeImage() else {
-            throw OCRError.recognitionFailed(reason: "Failed to extract CGImage from rendered page")
-        }
-
-        return image
     }
 
     // MARK: - Text Recognition
