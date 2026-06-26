@@ -96,7 +96,6 @@ struct TrayView: View {
                         selectionStart = localPoint
                         selectionEnd = localPoint
                         isSelecting = true
-                        DispatchQueue.main.async { tvm.clearSelection() }
                     case .leftMouseDragged:
                         guard isSelecting else { break }
                         selectionEnd = localPoint
@@ -127,14 +126,10 @@ struct TrayView: View {
     }
 
     var text: String {
-        [
-            String(
-                format: NSLocalizedString("Drag files here to keep them for %@", comment: ""),
-                storageTime
-            ),
-            "&",
-            NSLocalizedString("Drop to delete", comment: ""),
-        ].joined(separator: " ")
+        String(
+            format: NSLocalizedString("Drag files here to keep them for %@", comment: ""),
+            storageTime
+        )
     }
 
     var content: some View {
@@ -284,9 +279,7 @@ struct TrayView: View {
         let ids = itemFrames.compactMap { id, frame in
             frame.intersects(rect) ? id : nil
         }
-        if !ids.isEmpty {
-            tvm.selectedIDs = Set(ids)
-        }
+        tvm.selectedIDs = Set(ids)
     }
 }
 

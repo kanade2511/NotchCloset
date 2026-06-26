@@ -83,9 +83,25 @@ extension NotchViewModel {
                 let hoveringNotch = deviceNotchRect.insetBy(dx: inset, dy: inset).contains(mouseLocation)
                 switch status {
                 case .closed:
-                    if hoveringNotch { notchPop() }
+                    if hoveringNotch {
+                        notchPop()
+                        hapticSender.send()
+                    }
                 case .popping:
-                    if !hoveringNotch { notchClose() }
+                    if hoveringNotch {
+                        if closeWorkItem == nil {
+                            let work = DispatchWorkItem { [weak self] in
+                                guard let self else { return }
+                                notchOpen(.click)
+                            }
+                            closeWorkItem = work
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
+                        }
+                    } else {
+                        closeWorkItem?.cancel()
+                        closeWorkItem = nil
+                        notchClose()
+                    }
                 case .opened:
                     let keepOpen = notchOpenedRect.contains(mouseLocation) || hoveringNotch
                     if keepOpen {
