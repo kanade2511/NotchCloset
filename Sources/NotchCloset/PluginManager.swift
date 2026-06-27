@@ -26,6 +26,7 @@ class PluginManager: ObservableObject {
     private func registerBuiltInPlugins() {
         register(AirDropPlugin())
         register(OCRPlugin())
+        register(ZipPlugin())
     }
 
     func updateEnabledState(for pluginId: String, enabled: Bool) {

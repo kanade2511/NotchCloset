@@ -7,20 +7,10 @@ struct TrayPluginZone: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if pluginManager.isEnabled(pluginId: "airdrop") {
-                PluginDropTarget(plugin: airDropPlugin)
-            }
-            if pluginManager.isEnabled(pluginId: "ocr") {
-                PluginDropTarget(plugin: ocrPlugin)
+            ForEach(Array(pluginManager.enabledPlugins), id: \.id) { plugin in
+                PluginDropTarget(plugin: plugin)
             }
         }
-    }
-
-    private var airDropPlugin: AirDropPlugin {
-        pluginManager.plugin(for: "airdrop") as! AirDropPlugin
-    }
-    private var ocrPlugin: OCRPlugin {
-        pluginManager.plugin(for: "ocr") as! OCRPlugin
     }
 }
 
