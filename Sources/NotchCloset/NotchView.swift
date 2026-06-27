@@ -50,7 +50,15 @@ struct NotchView: View {
             Group {
                 if vm.status == .opened {
                     VStack(spacing: NotchDesignTokens.spacing) {
-                        NotchHeaderView(vm: vm)
+                        HStack {
+                            Spacer()
+                            Button {
+                                vm.openSettings()
+                            } label: {
+                                Image(systemName: "gear")
+                            }
+                            .buttonStyle(.borderless)
+                        }
                         TrayView(vm: vm)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }

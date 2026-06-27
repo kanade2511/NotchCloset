@@ -103,3 +103,30 @@ extension TrayDrop.DropItem {
         return !FileManager.default.fileExists(atPath: sourceURL.path)
     }
 }
+
+// MARK: - AppKit Extensions (inlined from separate files)
+
+extension NSImage {
+    var pngRepresentation: Data {
+        guard let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return .init()
+        }
+        let imageRep = NSBitmapImageRep(cgImage: cgImage)
+        imageRep.size = size
+        return imageRep.representation(using: .png, properties: [:]) ?? .init()
+    }
+}
+
+extension URL {
+    func snapshotPreview() -> NSImage {
+        if let preview = QLThumbnailImageCreate(
+            kCFAllocatorDefault,
+            self as CFURL,
+            CGSize(width: 128, height: 128),
+            nil
+        )?.takeRetainedValue() {
+            return NSImage(cgImage: preview, size: .zero)
+        }
+        return NSWorkspace.shared.icon(forFile: path)
+    }
+}

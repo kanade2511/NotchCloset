@@ -12,11 +12,8 @@ import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var isFirstOpen = true
-    var isLaunchedAtLogin = false
     var mainWindowController: NotchWindowController?
     var settingsWindow: NSWindow?
-
-    var timer: Timer?
 
     func applicationDidFinishLaunching(_: Notification) {
         NotificationCenter.default.addObserver(
@@ -27,17 +24,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         NSApp.setActivationPolicy(.accessory)
 
-        isLaunchedAtLogin = false
-
         _ = EventMonitors.shared
-        let timer = Timer.scheduledTimer(
+        _ = Timer.scheduledTimer(
             withTimeInterval: 1,
             repeats: true
         ) { [weak self] _ in
             self?.determineIfProcessIdentifierMatches()
             self?.makeKeyAndVisibleIfNeeded()
         }
-        self.timer = timer
 
         rebuildApplicationWindows()
     }
@@ -60,7 +54,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController = nil
         guard let mainScreen = findScreenFitsOurNeeds() else { return }
         mainWindowController = .init(screen: mainScreen)
-        if isFirstOpen, !isLaunchedAtLogin {
+        if isFirstOpen {
             mainWindowController?.openAfterCreate = true
         }
     }

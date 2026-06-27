@@ -11,13 +11,8 @@ import Combine
 class EventMonitors {
     static let shared = EventMonitors()
 
-    private var mouseMoveEvent: EventMonitor!
-    private var mouseDownEvent: EventMonitor!
-    private var mouseDraggingFileEvent: EventMonitor!
-    private var optionKeyPressEvent: EventMonitor!
-    private var spaceKeyEvent: EventMonitor!
-    private var backspaceKeyEvent: EventMonitor!
-    private var commandBackspaceKeyEvent: EventMonitor!
+    private var globalMonitors: [Any] = []
+    private var localMonitors: [Any] = []
 
     let mouseLocation: CurrentValueSubject<NSPoint, Never> = .init(.zero)
     let mouseDown: PassthroughSubject<Void, Never> = .init()
@@ -30,21 +25,42 @@ class EventMonitors {
     private var dragPasteboardBaseline = 0
 
     private init() {
-        mouseMoveEvent = EventMonitor(mask: .mouseMoved) { [weak self] _ in
+        // mouseMove
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] _ in
             guard let self else { return }
             let mouseLocation = NSEvent.mouseLocation
             self.mouseLocation.send(mouseLocation)
+        } {
+            globalMonitors.append(monitor)
         }
-        mouseMoveEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .mouseMoved) { [weak self] event in
+            guard let self else { return event }
+            let mouseLocation = NSEvent.mouseLocation
+            self.mouseLocation.send(mouseLocation)
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
 
-        mouseDownEvent = EventMonitor(mask: .leftMouseDown) { [weak self] _ in
+        // mouseDown
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
             guard let self else { return }
             mouseDown.send()
             dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
+        } {
+            globalMonitors.append(monitor)
         }
-        mouseDownEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            guard let self else { return event }
+            mouseDown.send()
+            dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
 
-        mouseDraggingFileEvent = EventMonitor(mask: .leftMouseDragged) { [weak self] _ in
+        // mouseDraggingFile
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged) { [weak self] _ in
             guard let self else { return }
             if NSPasteboard(name: .drag).changeCount != dragPasteboardBaseline {
                 dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
@@ -61,41 +77,109 @@ class EventMonitors {
                     dragBegan.send()
                 }
             }
+        } {
+            globalMonitors.append(monitor)
         }
-        mouseDraggingFileEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
+            guard let self else { return event }
+            if NSPasteboard(name: .drag).changeCount != dragPasteboardBaseline {
+                dragPasteboardBaseline = NSPasteboard(name: .drag).changeCount
+                let types = NSPasteboard(name: .drag).types ?? []
+                let hasTarget = types.contains { t in
+                    t.rawValue.hasPrefix("public.file-url") ||
+                    t.rawValue.hasPrefix("public.url") ||
+                    t.rawValue.hasPrefix("public.utf") ||
+                    t.rawValue.hasPrefix("public.plain-text") ||
+                    t.rawValue.hasPrefix("public.rtf") ||
+                    t == .fileURL
+                }
+                if hasTarget {
+                    dragBegan.send()
+                }
+            }
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
 
-        optionKeyPressEvent = EventMonitor(mask: .flagsChanged) { [weak self] event in
+        // optionKeyPress
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self else { return }
-            if event?.modifierFlags.contains(.option) == true {
+            if event.modifierFlags.contains(.option) {
                 optionKeyPress.send(true)
             } else {
                 optionKeyPress.send(false)
             }
+        } {
+            globalMonitors.append(monitor)
         }
-        optionKeyPressEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self else { return event }
+            if event.modifierFlags.contains(.option) {
+                optionKeyPress.send(true)
+            } else {
+                optionKeyPress.send(false)
+            }
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
 
-        spaceKeyEvent = EventMonitor(mask: .keyDown) { [weak self] event in
-            guard let self, let event, event.keyCode == 49 else { return }
+        // spaceKey
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.keyCode == 49 else { return }
             spaceKeyDown.send()
+        } {
+            globalMonitors.append(monitor)
         }
-        spaceKeyEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.keyCode == 49 else { return event }
+            spaceKeyDown.send()
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
 
-        backspaceKeyEvent = EventMonitor(mask: .keyDown) { [weak self] event in
-            guard let self, let event,
+        // backspaceKey
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
                   event.keyCode == 51,
                   !event.modifierFlags.contains(.command)
             else { return }
             backspaceKeyDown.send()
+        } {
+            globalMonitors.append(monitor)
         }
-        backspaceKeyEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
+                  event.keyCode == 51,
+                  !event.modifierFlags.contains(.command)
+            else { return event }
+            backspaceKeyDown.send()
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
 
-        commandBackspaceKeyEvent = EventMonitor(mask: .keyDown) { [weak self] event in
-            guard let self, let event,
+        // commandBackspaceKey
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
                   event.keyCode == 51,
                   event.modifierFlags.contains(.command)
             else { return }
             commandBackspaceKeyDown.send()
+        } {
+            globalMonitors.append(monitor)
         }
-        commandBackspaceKeyEvent.start()
+        if let monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self,
+                  event.keyCode == 51,
+                  event.modifierFlags.contains(.command)
+            else { return event }
+            commandBackspaceKeyDown.send()
+            return event
+        } {
+            localMonitors.append(monitor)
+        }
     }
 }

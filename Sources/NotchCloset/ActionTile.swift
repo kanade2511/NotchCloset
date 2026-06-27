@@ -1,9 +1,5 @@
 import SwiftUI
 
-// TODO: 赤系tint（.red）は暖色の前進錯視により青系より約5〜10%大きく知覚される。
-// コード上のサイズは同一だが、視覚的な統一には赤系のmaxWidthを少し下げる補正が必要か。
-// 例: tint == .red のとき maxWidth: 60、それ以外は 64 など。
-
 struct ActionTile: View {
     let icon: String
     let label: String
