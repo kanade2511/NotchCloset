@@ -164,6 +164,11 @@ struct DropItemView: View {
                 }
                 Divider()
                 Button {
+                    guard NSAlert.confirm(
+                        title: NSLocalizedString("Move to Trash?", comment: ""),
+                        message: NSLocalizedString("The original file will be moved to the Trash. This cannot be undone.", comment: ""),
+                        acceptButton: NSLocalizedString("Move to Trash", comment: "")
+                    ) else { return }
                     tvm.trashFiles(ids: [item.id])
                 } label: {
                     Label(NSLocalizedString("Move to Trash", comment: ""), systemImage: "trash")

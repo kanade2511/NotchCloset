@@ -71,6 +71,16 @@ extension NotchViewModel {
             .sink { _ in
                 let tvm = TrayDrop.shared
                 guard !tvm.selectedIDs.isEmpty else { return }
+                let count = tvm.selectedIDs.count
+                guard NSAlert.confirm(
+                    title: String.localizedStringWithFormat(
+                        NSLocalizedString("Move %d item(s) to Trash?", comment: ""), count
+                    ),
+                    message: NSLocalizedString(
+                        "The original files will be moved to the Trash. This cannot be undone.", comment: ""
+                    ),
+                    acceptButton: NSLocalizedString("Move to Trash", comment: "")
+                ) else { return }
                 tvm.trashFiles(ids: tvm.selectedIDs)
             }
             .store(in: &cancellables)
