@@ -97,6 +97,26 @@ public enum PDFOCREngine {
         return result
     }
 
+    /// Recognize text on a single CGImage using Vision.
+    /// - Parameters:
+    ///   - image: The CGImage to recognize.
+    ///   - recognitionLanguages: Array of language identifiers (e.g., "ja-JP", "en-US").
+    ///   - recognitionLevel: Vision text recognition level (.accurate or .fast).
+    ///   - progress: Progress callback on an arbitrary thread (0.0 – 1.0).
+    /// - Returns: Array with a single RecognizedPage.
+    public static func recognize(
+        image cgImage: CGImage,
+        recognitionLanguages: [String] = ["ja-JP", "en-US", "zh-Hans", "zh-Hant", "ko-KR"],
+        recognitionLevel: VNRequestTextRecognitionLevel = .accurate,
+        progress: @escaping (Double) -> Void
+    ) async throws -> [RecognizedPage] {
+        let lines = try await recognizeText(in: cgImage,
+                                            recognitionLanguages: recognitionLanguages,
+                                            recognitionLevel: recognitionLevel)
+        progress(1.0)
+        return [RecognizedPage(lines: lines)]
+    }
+
     // MARK: - Text Recognition
 
     /// Run VNRecognizeTextRequest on a CGImage and return recognized lines.

@@ -46,8 +46,8 @@ public enum PDFSearchableBuilder {
         }
 
         let outputURL = url
-            .deletingPathExtension()
-            .appendingPathExtension("ocr.pdf")
+            .deletingLastPathComponent()
+            .appendingPathComponent("\(url.lastPathComponent)-ocr.pdf")
 
         guard let consumer = CGDataConsumer(url: outputURL as CFURL) else {
             throw BuilderError.destinationUnwritable
@@ -98,6 +98,69 @@ public enum PDFSearchableBuilder {
             pdfContext.endPDFPage()
         }
 
+        pdfContext.closePDF()
+
+        guard FileManager.default.fileExists(atPath: outputURL.path) else {
+            throw BuilderError.pdfCreationFailed
+        }
+
+        return outputURL
+    }
+
+    /// Build a searchable PDF from a single CGImage.
+    ///
+    /// The output file is written to the same directory as `source` with the
+    /// name `<originalFilename>-ocr.pdf`. Collision handling is left to the caller.
+    ///
+    /// - Parameters:
+    ///   - image: Source CGImage.
+    ///   - lines: Recognised text lines from ``PDFOCREngine``.
+    ///   - source: Source URL (used for directory and output name).
+    /// - Returns: URL of the created `.ocr.pdf` file.
+    public static func buildSearchablePDF(
+        image cgImage: CGImage,
+        lines: [RecognizedLine],
+        source url: URL
+    ) throws -> URL {
+        let outputURL = url
+            .deletingLastPathComponent()
+            .appendingPathComponent("\(url.lastPathComponent)-ocr.pdf")
+
+        guard let consumer = CGDataConsumer(url: outputURL as CFURL) else {
+            throw BuilderError.destinationUnwritable
+        }
+
+        var mediaBox = CGRect.zero
+        guard let pdfContext = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
+            throw BuilderError.pdfCreationFailed
+        }
+
+        let imageWidth = CGFloat(cgImage.width)
+        let imageHeight = CGFloat(cgImage.height)
+        let pageWidth = imageWidth * pointsPerInch / dpi
+        let pageHeight = imageHeight * pointsPerInch / dpi
+        let pageBounds = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+
+        // Re-encode as JPEG so CGPDFContext can embed it efficiently.
+        let jpegData = try encodeJPEG(cgImage)
+        guard let jpegImage = decodeJPEG(jpegData) else {
+            throw BuilderError.pageRenderFailed
+        }
+
+        // Begin a new PDF page with bounds calculated from image dimensions at 150 DPI.
+        let pageInfo: CFDictionary = [
+            kCGPDFContextMediaBox: NSValue(rect: pageBounds)
+        ] as CFDictionary
+        pdfContext.beginPDFPage(pageInfo)
+
+        // Draw the image.
+        pdfContext.draw(jpegImage, in: pageBounds)
+
+        // Overlay invisible text so the PDF is searchable.
+        drawInvisibleText(in: pdfContext, lines: lines,
+                          pageBounds: pageBounds)
+
+        pdfContext.endPDFPage()
         pdfContext.closePDF()
 
         guard FileManager.default.fileExists(atPath: outputURL.path) else {

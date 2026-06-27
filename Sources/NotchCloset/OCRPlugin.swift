@@ -25,6 +25,18 @@ class OCRPlugin: ObservableObject, NotchPlugin {
     @PublishedPersist(key: "ocr_recognition_level", defaultValue: 0)  // 0=accurate, 1=fast
     var recognitionLevel: Int
 
+    @PublishedPersist(key: "ocr_output_to_source", defaultValue: true)
+    var outputToSourceDir: Bool  // true=same dir as source, false=custom dir
+
+    @PublishedPersist(key: "ocr_custom_output_dir", defaultValue: "")
+    var customOutputDir: String  // path when outputToSourceDir=false
+
+    @PublishedPersist(key: "ocr_image_name_template", defaultValue: "{name}.{ext}-ocr.pdf")
+    var imageNameTemplate: String  // template for image files
+
+    @PublishedPersist(key: "ocr_pdf_name_template", defaultValue: "{name}.{ext}-ocr.pdf")
+    var pdfNameTemplate: String  // template for PDF files
+
     @Published var isProcessing = false
     @Published var isHovered = false
 
@@ -57,16 +69,16 @@ class OCRPlugin: ObservableObject, NotchPlugin {
 
             for id in itemIDs {
                 guard let item = TrayDrop.shared.items.first(where: { $0.id == id }),
-                      !item.isText, !item.isWebURL,
-                      item.sourceURL.pathExtension.lowercased() == "pdf"
+                      !item.isText, !item.isWebURL
                 else { continue }
+                let ext = item.sourceURL.pathExtension.lowercased()
+                let isPDF = ext == "pdf"
+                let isImage = ["png", "jpg", "jpeg", "tiff", "tif", "heic", "heif", "webp", "bmp"].contains(ext)
+                guard isPDF || isImage else { continue }
 
                 guard let sourceURL = item.accessSource({ $0 }) else { continue }
 
-                // Determine expected output path alongside the source PDF
-                let baseName = sourceURL.deletingPathExtension().lastPathComponent
-                let dir = sourceURL.deletingLastPathComponent()
-                let defaultOutput = dir.appendingPathComponent("\(baseName).ocr.pdf")
+                let defaultOutput = resolveOutputURL(for: sourceURL)
 
                 // Check for name collision on the main actor (NSAlert must be called on main thread)
                 let finalURL = await MainActor.run { [defaultOutput] in
@@ -75,8 +87,18 @@ class OCRPlugin: ObservableObject, NotchPlugin {
                 guard let finalURL else { continue }
 
                 do {
-                    let pages = try await PDFOCREngine.recognize(pdf: sourceURL, recognitionLanguages: recognitionLanguages, recognitionLevel: visionRecognitionLevel, progress: { _ in })
-                    let generatedURL = try PDFSearchableBuilder.buildSearchablePDF(source: sourceURL, pages: pages)
+                    let pages: [RecognizedPage]
+                    let generatedURL: URL
+                    if ext == "pdf" {
+                        pages = try await PDFOCREngine.recognize(pdf: sourceURL, recognitionLanguages: recognitionLanguages, recognitionLevel: visionRecognitionLevel, progress: { _ in })
+                        generatedURL = try PDFSearchableBuilder.buildSearchablePDF(source: sourceURL, pages: pages)
+                    } else {
+                        guard let imageSource = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
+                              let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+                        else { continue }
+                        pages = try await PDFOCREngine.recognize(image: cgImage, recognitionLanguages: recognitionLanguages, recognitionLevel: visionRecognitionLevel, progress: { _ in })
+                        generatedURL = try PDFSearchableBuilder.buildSearchablePDF(image: cgImage, lines: pages[0].lines, source: sourceURL)
+                    }
 
                     // If the generated file is at a different path (Keep Both scenario), move it
                     if generatedURL != finalURL {
@@ -106,9 +128,12 @@ class OCRPlugin: ObservableObject, NotchPlugin {
     }
 
     func contextMenuItems(for item: TrayDrop.DropItem) -> [PluginMenuItem] {
-        // Only show for PDF items; skip text and web URL items
+        // Only show for PDF and image items; skip text and web URL items
+        let ext = item.sourceURL.pathExtension.lowercased()
+        let isPDF = ext == "pdf"
+        let isImage = ["png", "jpg", "jpeg", "tiff", "tif", "heic", "heif", "webp", "bmp"].contains(ext)
         guard !item.isText, !item.isWebURL,
-              item.sourceURL.pathExtension.lowercased() == "pdf"
+              isPDF || isImage
         else { return [] }
 
         return [
@@ -129,7 +154,15 @@ class OCRPlugin: ObservableObject, NotchPlugin {
                         defer { self.isProcessing = false }
                         guard let url = item.accessSource({ $0 }) else { return }
                         do {
-                            let pages = try await PDFOCREngine.recognize(pdf: url, recognitionLanguages: self.recognitionLanguages, recognitionLevel: self.visionRecognitionLevel, progress: { _ in })
+                            let pages: [RecognizedPage]
+                            if ext == "pdf" {
+                                pages = try await PDFOCREngine.recognize(pdf: url, recognitionLanguages: self.recognitionLanguages, recognitionLevel: self.visionRecognitionLevel, progress: { _ in })
+                            } else {
+                                guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+                                      let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+                                else { return }
+                                pages = try await PDFOCREngine.recognize(image: cgImage, recognitionLanguages: self.recognitionLanguages, recognitionLevel: self.visionRecognitionLevel, progress: { _ in })
+                            }
                             let text = pages.map { page in
                                 page.lines.map(\.text).joined(separator: "\n")
                             }.joined(separator: "\n\n")
@@ -165,10 +198,12 @@ class OCRPlugin: ObservableObject, NotchPlugin {
             // providers から URL を解決（resolveAnyURL は同期・semaphore 使用のためバックグラウンドで呼ぶ）
             let urls = resolveURLs(from: providers)
 
-            for sourceURL in urls where sourceURL.pathExtension.lowercased() == "pdf" {
-                let baseName = sourceURL.deletingPathExtension().lastPathComponent
-                let dir = sourceURL.deletingLastPathComponent()
-                let defaultOutput = dir.appendingPathComponent("\(baseName).ocr.pdf")
+            for sourceURL in urls {
+                let ext = sourceURL.pathExtension.lowercased()
+                let isPDF = ext == "pdf"
+                let isImage = ["png", "jpg", "jpeg", "tiff", "tif", "heic", "heif", "webp", "bmp"].contains(ext)
+                guard isPDF || isImage else { continue }
+                let defaultOutput = resolveOutputURL(for: sourceURL)
 
                 let finalURL = await MainActor.run { [defaultOutput] in
                     self.resolveCollision(for: defaultOutput)
@@ -176,8 +211,18 @@ class OCRPlugin: ObservableObject, NotchPlugin {
                 guard let finalURL else { continue }
 
                 do {
-                    let pages = try await PDFOCREngine.recognize(pdf: sourceURL, recognitionLanguages: recognitionLanguages, recognitionLevel: visionRecognitionLevel, progress: { _ in })
-                    let generatedURL = try PDFSearchableBuilder.buildSearchablePDF(source: sourceURL, pages: pages)
+                    let pages: [RecognizedPage]
+                    let generatedURL: URL
+                    if ext == "pdf" {
+                        pages = try await PDFOCREngine.recognize(pdf: sourceURL, recognitionLanguages: recognitionLanguages, recognitionLevel: visionRecognitionLevel, progress: { _ in })
+                        generatedURL = try PDFSearchableBuilder.buildSearchablePDF(source: sourceURL, pages: pages)
+                    } else {
+                        guard let imageSource = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
+                              let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
+                        else { continue }
+                        pages = try await PDFOCREngine.recognize(image: cgImage, recognitionLanguages: recognitionLanguages, recognitionLevel: visionRecognitionLevel, progress: { _ in })
+                        generatedURL = try PDFSearchableBuilder.buildSearchablePDF(image: cgImage, lines: pages[0].lines, source: sourceURL)
+                    }
 
                     if generatedURL != finalURL {
                         if FileManager.default.fileExists(atPath: finalURL.path) {
@@ -204,6 +249,33 @@ class OCRPlugin: ObservableObject, NotchPlugin {
     }
 
     // MARK: - Helpers
+
+    /// Resolve the output URL using current settings.
+    func resolveOutputURL(for sourceURL: URL) -> URL {
+        let dir: URL
+        if outputToSourceDir {
+            dir = sourceURL.deletingLastPathComponent()
+        } else {
+            let custom = (customOutputDir as NSString).expandingTildeInPath
+            dir = URL(fileURLWithPath: custom)
+        }
+
+        let ext = sourceURL.pathExtension.lowercased()
+        let isPDF = ext == "pdf"
+        let template = isPDF ? pdfNameTemplate : imageNameTemplate
+        let name = sourceURL.deletingPathExtension().lastPathComponent
+
+        var outputName = template
+            .replacingOccurrences(of: "{name}", with: name)
+            .replacingOccurrences(of: "{ext}", with: ext)
+
+        // Ensure .pdf extension
+        if !outputName.hasSuffix(".pdf") {
+            outputName += ".pdf"
+        }
+
+        return dir.appendingPathComponent(outputName)
+    }
 
     /// Checks for file name collision at `outputURL` and presents an NSAlert dialog.
     /// - Returns: The resolved URL to use, or `nil` if the operation was cancelled.

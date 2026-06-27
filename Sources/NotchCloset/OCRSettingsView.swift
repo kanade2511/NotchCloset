@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct OCRSettingsView: View {
@@ -71,6 +72,75 @@ struct OCRSettingsView: View {
                                     .fill(Color.primary.opacity(0.04))
                             )
                         }
+                    }
+                }
+
+                Divider()
+
+                // Output Settings section
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Output Settings")
+                        .font(.system(.headline, design: .rounded))
+
+                    // Output directory
+                    Toggle(isOn: $ocrPlugin.outputToSourceDir) {
+                        Text("Save next to source file")
+                    }
+
+                    if !ocrPlugin.outputToSourceDir {
+                        HStack(spacing: 8) {
+                            TextField("Custom directory", text: $ocrPlugin.customOutputDir)
+                                .textFieldStyle(.roundedBorder)
+                            Button("Browse…") {
+                                let panel = NSOpenPanel()
+                                panel.canChooseFiles = false
+                                panel.canChooseDirectories = true
+                                panel.canCreateDirectories = true
+                                panel.begin { response in
+                                    if response == .OK, let url = panel.url {
+                                        ocrPlugin.customOutputDir = url.path
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    // Filename template for images
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Image filename template")
+                            .font(.system(.subheadline, design: .rounded))
+                        TextField("", text: $ocrPlugin.imageNameTemplate)
+                            .textFieldStyle(.roundedBorder)
+                        Text("Use {name} for base name, {ext} for original extension")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        // Preview
+                        let previewName = ocrPlugin.imageNameTemplate
+                            .replacingOccurrences(of: "{name}", with: "photo")
+                            .replacingOccurrences(of: "{ext}", with: "png")
+                        Text("Example: photo.png → \(previewName)")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Filename template for PDFs
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("PDF filename template")
+                            .font(.system(.subheadline, design: .rounded))
+                        TextField("", text: $ocrPlugin.pdfNameTemplate)
+                            .textFieldStyle(.roundedBorder)
+                        Text("Use {name} for base name, {ext} for original extension")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        // Preview
+                        let previewName = ocrPlugin.pdfNameTemplate
+                            .replacingOccurrences(of: "{name}", with: "document")
+                            .replacingOccurrences(of: "{ext}", with: "pdf")
+                        Text("Example: document.pdf → \(previewName)")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
